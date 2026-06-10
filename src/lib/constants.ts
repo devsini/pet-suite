@@ -1,0 +1,9 @@
+export const APP_NAME = 'PetCare Suite';
+export const APP_VERSION = '0.1.0';
+export const DEFAULT_PAGE_SIZE = 20;
+export const MAX_PAGE_SIZE = 100;
+export const DEFAULT_TIMEZONE = 'Asia/Jakarta';
+export const PHONE_COUNTRY_CODE = '+62';
+export const QR_DATA_PREFIX = 'petcare-suite';
+export const DEFAULT_LIST_LIMIT = 50;
+export const NOTIFICATION_FETCH_LIMIT = 25;
