@@ -1,15 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSupabaseQuery, useSupabaseMutation, useToast } from '@/hooks';
 import { settingsService } from './settings.service';
 import type { AuditLogFilter, AuditLogResult, BusinessHoursSettings, EmailSettings, InvoiceSettings, ModuleRecord, ServiceTestResult, WhatsAppSettings, ClinicProfile } from './settings.types';
 
 export function useClinicProfile() {
-  return useQuery(['settings', 'clinicProfile'], () => settingsService.getClinicProfile());
+  return useSupabaseQuery(['settings', 'clinicProfile'], () => settingsService.getClinicProfile());
 }
 
 export function useUpdateClinicProfile() {
   const queryClient = useQueryClient();
-  return useMutation((profile: Partial<ClinicProfile>) => settingsService.updateClinicProfile(profile), {
+  const toast = useToast();
+
+  return useSupabaseMutation((profile: Partial<ClinicProfile>) => settingsService.updateClinicProfile(profile), {
     onSuccess: () => {
       queryClient.invalidateQueries(['settings', 'clinicProfile']);
       toast.success('Clinic profile updated');
@@ -21,12 +23,14 @@ export function useUpdateClinicProfile() {
 }
 
 export function useBusinessHours() {
-  return useQuery(['settings', 'businessHours'], () => settingsService.getBusinessHours());
+  return useSupabaseQuery(['settings', 'businessHours'], () => settingsService.getBusinessHours());
 }
 
 export function useUpdateBusinessHours() {
   const queryClient = useQueryClient();
-  return useMutation((hours: BusinessHoursSettings) => settingsService.updateBusinessHours(hours), {
+  const toast = useToast();
+
+  return useSupabaseMutation((hours: BusinessHoursSettings) => settingsService.updateBusinessHours(hours), {
     onSuccess: () => {
       queryClient.invalidateQueries(['settings', 'businessHours']);
       toast.success('Business hours updated');
@@ -38,12 +42,14 @@ export function useUpdateBusinessHours() {
 }
 
 export function useInvoiceSettings() {
-  return useQuery(['settings', 'invoiceSettings'], () => settingsService.getInvoiceSettings());
+  return useSupabaseQuery(['settings', 'invoiceSettings'], () => settingsService.getInvoiceSettings());
 }
 
 export function useUpdateInvoiceSettings() {
   const queryClient = useQueryClient();
-  return useMutation((settings: Partial<InvoiceSettings>) => settingsService.updateInvoiceSettings(settings), {
+  const toast = useToast();
+
+  return useSupabaseMutation((settings: Partial<InvoiceSettings>) => settingsService.updateInvoiceSettings(settings), {
     onSuccess: () => {
       queryClient.invalidateQueries(['settings', 'invoiceSettings']);
       toast.success('Invoice settings updated');
@@ -55,12 +61,14 @@ export function useUpdateInvoiceSettings() {
 }
 
 export function useWhatsAppSettings() {
-  return useQuery(['settings', 'whatsappSettings'], () => settingsService.getWhatsAppSettings());
+  return useSupabaseQuery(['settings', 'whatsappSettings'], () => settingsService.getWhatsAppSettings());
 }
 
 export function useSaveWhatsAppSettings() {
   const queryClient = useQueryClient();
-  return useMutation((settings: WhatsAppSettings) => settingsService.saveWhatsAppSettings(settings), {
+  const toast = useToast();
+
+  return useSupabaseMutation((settings: WhatsAppSettings) => settingsService.saveWhatsAppSettings(settings), {
     onSuccess: () => {
       queryClient.invalidateQueries(['settings', 'whatsappSettings']);
       toast.success('WhatsApp settings saved');
@@ -72,12 +80,14 @@ export function useSaveWhatsAppSettings() {
 }
 
 export function useEmailSettings() {
-  return useQuery(['settings', 'emailSettings'], () => settingsService.getEmailSettings());
+  return useSupabaseQuery(['settings', 'emailSettings'], () => settingsService.getEmailSettings());
 }
 
 export function useSaveEmailSettings() {
   const queryClient = useQueryClient();
-  return useMutation((settings: EmailSettings) => settingsService.saveEmailSettings(settings), {
+  const toast = useToast();
+
+  return useSupabaseMutation((settings: EmailSettings) => settingsService.saveEmailSettings(settings), {
     onSuccess: () => {
       queryClient.invalidateQueries(['settings', 'emailSettings']);
       toast.success('Email settings saved');
@@ -89,12 +99,14 @@ export function useSaveEmailSettings() {
 }
 
 export function useModules() {
-  return useQuery(['settings', 'modules'], () => settingsService.getModules());
+  return useSupabaseQuery(['settings', 'modules'], () => settingsService.getModules());
 }
 
 export function useToggleModule() {
   const queryClient = useQueryClient();
-  return useMutation(({ key, isEnabled }: { key: string; isEnabled: boolean }) => settingsService.toggleModule(key, isEnabled), {
+  const toast = useToast();
+
+  return useSupabaseMutation(({ key, isEnabled }: { key: string; isEnabled: boolean }) => settingsService.toggleModule(key, isEnabled), {
     onSuccess: () => {
       queryClient.invalidateQueries(['settings', 'modules']);
       toast.success('Module updated');
@@ -106,7 +118,8 @@ export function useToggleModule() {
 }
 
 export function useTestWhatsApp() {
-  return useMutation((number: string) => settingsService.testWhatsApp(number), {
+  const toast = useToast();
+  return useSupabaseMutation((number: string) => settingsService.testWhatsApp(number), {
     onError: (error: any) => {
       toast.error(error?.message ?? 'Unable to send WhatsApp test');
     }
@@ -114,7 +127,8 @@ export function useTestWhatsApp() {
 }
 
 export function useTestEmail() {
-  return useMutation((email: string) => settingsService.testEmail(email), {
+  const toast = useToast();
+  return useSupabaseMutation((email: string) => settingsService.testEmail(email), {
     onError: (error: any) => {
       toast.error(error?.message ?? 'Unable to send email test');
     }

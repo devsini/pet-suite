@@ -1,43 +1,11 @@
 import { useMemo } from 'react';
-import { Home, ShoppingCart, Wallet, Settings, Users, Stethoscope, PawPrint, Box, CalendarDays, FileText, ShieldCheck, HeartPulse, ChevronLeft, ChevronRight, Scissors, Package, DollarSign } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useModuleStore } from '@/stores/module.store';
 import { useUIStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
-
-interface NavItem {
-  label: string;
-  path: string;
-  icon: typeof Home;
-  section: 'main' | 'clinical' | 'operations' | 'finance' | 'system';
-  moduleKey?: string;
-  roles: Array<'owner' | 'doctor' | 'staff' | 'customer'>;
-}
-
-const items: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: Home, section: 'main', roles: ['owner', 'doctor', 'staff', 'customer'] },
-  { label: 'Appointments', path: '/staff/appointments', icon: CalendarDays, section: 'clinical', roles: ['owner', 'doctor', 'staff'], moduleKey: 'clinic' },
-  { label: 'Medical', path: '/doctor/medical-records', icon: Stethoscope, section: 'clinical', roles: ['owner', 'doctor'], moduleKey: 'clinic' },
-  { label: 'Vaccinations', path: '/staff/vaccinations', icon: ShieldCheck, section: 'clinical', roles: ['owner', 'doctor', 'staff'], moduleKey: 'clinic' },
-  { label: 'Monitoring', path: '/staff/monitoring', icon: HeartPulse, section: 'clinical', roles: ['owner', 'doctor', 'staff'], moduleKey: 'monitoring' },
-  { label: 'Customers', path: '/staff/customers', icon: Users, section: 'operations', roles: ['owner', 'staff'], moduleKey: 'clinic' },
-  { label: 'Pets', path: '/staff/pets', icon: PawPrint, section: 'operations', roles: ['owner', 'staff', 'customer'], moduleKey: 'clinic' },
-  { label: 'Inpatient', path: '/staff/inpatient', icon: HeartPulse, section: 'operations', roles: ['owner', 'staff'], moduleKey: 'inpatient' },
-  { label: 'Grooming', path: '/staff/grooming', icon: Scissors, section: 'operations', roles: ['owner', 'staff'], moduleKey: 'grooming' },
-  { label: 'Petshop', path: '/staff/petshop', icon: Package, section: 'operations', roles: ['owner', 'staff'], moduleKey: 'petshop' },
-  { label: 'Inventory', path: '/staff/inventory', icon: Box, section: 'operations', roles: ['owner', 'staff'], moduleKey: 'inventory' },
-  { label: 'POS', path: '/staff/pos', icon: ShoppingCart, section: 'finance', roles: ['owner', 'staff'], moduleKey: 'accounting' },
-  { label: 'Billing', path: '/staff/invoices', icon: Wallet, section: 'finance', roles: ['owner', 'staff'], moduleKey: 'accounting' },
-  { label: 'Accounting', path: '/staff/accounting', icon: DollarSign, section: 'finance', roles: ['owner', 'staff'], moduleKey: 'accounting' },
-  { label: 'Reports', path: '/staff/reports/financial', icon: FileText, section: 'system', roles: ['owner'] },
-  { label: 'Clinic Settings', path: '/staff/settings/clinic', icon: Settings, section: 'system', roles: ['owner'] },
-  { label: 'Invoice Settings', path: '/staff/settings/invoice', icon: FileText, section: 'system', roles: ['owner'] },
-  { label: 'Business Hours', path: '/staff/settings/hours', icon: CalendarDays, section: 'system', roles: ['owner'] },
-  { label: 'WhatsApp', path: '/staff/settings/whatsapp', icon: ShieldCheck, section: 'system', roles: ['owner'] },
-  { label: 'Email', path: '/staff/settings/email', icon: Wallet, section: 'system', roles: ['owner'] },
-  { label: 'Modules', path: '/staff/settings/modules', icon: Box, section: 'system', roles: ['owner'] }
-];
+import { getNavigationRoutes } from '@/router/routes';
 
 interface SidebarProps {
   activePath: string;
@@ -54,12 +22,9 @@ export function Sidebar({ activePath, onNavigate, isMobileOpen = false, onClose,
   const collapseSidebar = useUIStore((state) => state.toggleSidebar);
 
   const sections = useMemo(() => {
-    const grouped = items.filter((item) => {
-      const enabled = item.moduleKey ? modules[item.moduleKey as keyof typeof modules] : true;
-      return enabled && item.roles.includes(role ?? 'customer');
-    });
+    const filteredRoutes = getNavigationRoutes(role, modules);
 
-    return grouped.reduce<Record<string, NavItem[]>>((acc, item) => {
+    return filteredRoutes.reduce<Record<string, typeof filteredRoutes[number][]>>((acc, item) => {
       acc[item.section] = acc[item.section] ?? [];
       acc[item.section].push(item);
       return acc;

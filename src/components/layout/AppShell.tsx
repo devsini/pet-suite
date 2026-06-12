@@ -6,22 +6,8 @@ import { Navbar } from './Navbar';
 import { CommandPalette } from '@/components/common/CommandPalette';
 import { useUIStore } from '@/stores/ui.store';
 import { useModuleStore } from '@/stores/module.store';
-
-const routes = [
-  { label: 'Dashboard', path: '/dashboard' },
-  { label: 'Appointments', path: '/staff/appointments' },
-  { label: 'Customers', path: '/staff/customers' },
-  { label: 'Pets', path: '/staff/pets' },
-  { label: 'Vaccinations', path: '/staff/vaccinations' },
-  { label: 'Monitoring', path: '/staff/monitoring' },
-  { label: 'Inventory', path: '/staff/inventory' },
-  { label: 'POS', path: '/staff/pos' },
-  { label: 'Billing', path: '/staff/invoices' },
-  { label: 'Medical Records', path: '/doctor/medical-records' },
-  { label: 'Reports', path: '/staff/reports/financial' },
-  { label: 'Clinic Settings', path: '/staff/settings/clinic' },
-  { label: 'Profile', path: '/profile' }
-];
+import { useAuthStore } from '@/stores/auth.store';
+import { getCommandRoutes } from '@/router/routes';
 
 const breadcrumbLabelMap: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -46,7 +32,9 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
   const activeTheme = useUIStore((state) => state.activeTheme);
   const isSidebarCollapsed = useUIStore((state) => state.isSidebarCollapsed);
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
+  const role = useAuthStore((state) => state.role);
   const fetchModuleStatus = useModuleStore((state) => state.fetchModuleStatus);
+  const modules = useModuleStore((state) => state.modules);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const path = location.pathname;
@@ -128,7 +116,7 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
         </div>
       </div>
       {isMobileSidebarOpen && <div className="fixed inset-0 z-30 bg-slate-950/60 lg:hidden" onClick={() => setIsMobileSidebarOpen(false)} />}
-      <CommandPalette open={isPaletteOpen} onClose={() => setCommandPaletteOpen(false)} routes={routes} />
+      <CommandPalette open={isPaletteOpen} onClose={() => setCommandPaletteOpen(false)} routes={getCommandRoutes(role, modules)} />
     </div>
   );
 }

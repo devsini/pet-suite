@@ -70,6 +70,17 @@ export function truncate(value: string, maxLength: number) {
   return `${value.slice(0, maxLength - 3).trimEnd()}...`;
 }
 
+export function slugify(value: string) {
+  return value
+    .toString()
+    .normalize('NFKD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export function generateQRData(recordType: string, recordId: string) {
   return JSON.stringify({
     type: recordType,

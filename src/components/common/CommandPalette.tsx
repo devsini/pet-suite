@@ -1,13 +1,17 @@
 import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { Search, ChevronRight, X, ArrowDown, ArrowUp } from 'lucide-react';
+import { Search, ChevronRight, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/auth.store';
+import { useModuleStore } from '@/stores/module.store';
 import { supabase } from '@/lib/supabase';
+import { getCommandRoutes } from '@/router/routes';
+import type { AppRouteItem } from '@/router/routes';
 
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
-  routes?: { label: string; path: string }[];
+  routes?: AppRouteItem[];
 }
 
 interface SearchItem {
@@ -16,24 +20,21 @@ interface SearchItem {
   subtitle?: string;
 }
 
-const pages = [
-  { label: 'Dashboard', path: '/dashboard' },
-  { label: 'Customers', path: '/staff/customers' },
-  { label: 'Pets', path: '/staff/pets' }
-];
-
 export function CommandPalette({ open, onClose, routes }: CommandPaletteProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [remoteResults, setRemoteResults] = useState<SearchItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const availablePages = routes ?? pages;
+  const role = useAuthStore((state) => state.role);
+  const modules = useModuleStore((state) => state.modules);
 
-  const filteredPages = useMemo(
-    () => availablePages.filter((page) => page.label.toLowerCase().includes(query.toLowerCase())),
-    [availablePages, query]
-  );
+  const availablePages = useMemo(() => {
+    const candidates = routes ?? getCommandRoutes(role, modules);
+    return candidates.filter((page) => page.label.toLowerCase().includes(query.toLowerCase()));
+  }, [routes, role, modules, query]);
+
+  const filteredPages = availablePages;
 
   const results = useMemo(() => {
     const pageItems = filteredPages.map((page) => ({ label: page.label, path: page.path }));
