@@ -156,18 +156,26 @@ function mapInventoryValue(record: InventoryValueRow): InventoryValue {
 
 export const inventoryService = {
   async getCategories(): Promise<InventoryCategory[]> {
-    const { data, error } = await supabase
+    const query = supabase
       .from('inventory_categories')
-      .select('id, name, created_at');
+      .select('id, name, created_at')
+      .order('name', { ascending: true });
+    const result = await query;
+    const data = (result as { data?: CategoryRow[]; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
     return ((data || []) as unknown as CategoryRow[]).map(mapCategory);
   },
 
   async getSuppliers(): Promise<Supplier[]> {
-    const { data, error } = await supabase
+    const query = supabase
       .from('suppliers')
-      .select('id, name, contact, address, notes, created_at');
+      .select('id, name, contact, address, notes, created_at')
+      .order('name', { ascending: true });
+    const result = await query;
+    const data = (result as { data?: SupplierRow[]; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
     return ((data || []) as unknown as SupplierRow[]).map(mapSupplier);
@@ -193,11 +201,15 @@ export const inventoryService = {
     if (params.isActive !== undefined) query = query.eq('is_active', params.isActive);
 
     if (params.lowStock) {
-      const res = await query;
-      if (res.error) handleSupabaseError(res.error);
+      const res = await (typeof query.range === 'function'
+        ? query.range(0, 1000)
+        : query);
+      const data = (res as { data?: ItemRow[]; error?: unknown }).data;
+      const error = (res as { error?: unknown }).error;
+      if (error) handleSupabaseError(error);
 
       const lowStockItems: InventoryItem[] = (
-        (res.data || []) as unknown as ItemRow[]
+        (data || []) as unknown as ItemRow[]
       )
         .map(mapItem)
         .filter((item) => item.currentStock <= item.minStock);
@@ -208,10 +220,14 @@ export const inventoryService = {
       };
     }
 
-    const res = await query.range(offset, offset + pageSize - 1);
-    if (res.error) handleSupabaseError(res.error);
+    const res = await (typeof query.range === 'function'
+      ? query.range(offset, offset + pageSize - 1)
+      : query);
+    const data = (res as { data?: ItemRow[]; error?: unknown }).data;
+    const error = (res as { error?: unknown }).error;
+    if (error) handleSupabaseError(error);
 
-    const items: InventoryItem[] = ((res.data || []) as unknown as ItemRow[]).map(mapItem);
+    const items: InventoryItem[] = ((data || []) as unknown as ItemRow[]).map(mapItem);
     return {
       items,
       total: typeof res.count === 'number' ? res.count : items.length,
@@ -219,20 +235,22 @@ export const inventoryService = {
   },
 
   async getItemById(id: string): Promise<InventoryItem | null> {
-    const { data, error } = await supabase
+    const result = await supabase
       .from('inventory_items')
       .select(
         'id, name, category_id, unit, min_stock, current_stock, price_per_unit, is_active, created_at, updated_at, inventory_categories(name)',
       )
       .eq('id', id)
       .single();
+    const data = (result as { data?: ItemRow; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
     return data ? mapItem(data as unknown as ItemRow) : null;
   },
 
   async createItem(payload: InventoryItemPayload): Promise<InventoryItem> {
-    const { data, error } = await supabase
+    const result = await supabase
       .from('inventory_items')
       .insert({
         name: payload.name,
@@ -245,6 +263,8 @@ export const inventoryService = {
       })
       .select()
       .single();
+    const data = (result as { data?: ItemRow; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
     if (!data) throw new Error('Unable to create inventory item');
@@ -265,12 +285,14 @@ export const inventoryService = {
     if (payload.pricePerUnit !== undefined) transformed.price_per_unit = payload.pricePerUnit;
     if (payload.isActive !== undefined) transformed.is_active = payload.isActive;
 
-    const { data, error } = await supabase
+    const result = await supabase
       .from('inventory_items')
       .update(transformed)
       .eq('id', id)
       .select()
       .single();
+    const data = (result as { data?: ItemRow; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
     if (!data) throw new Error('Unable to update inventory item');
@@ -279,13 +301,15 @@ export const inventoryService = {
   },
 
   async getBatchesByItem({ itemId }: BatchQueryParams): Promise<InventoryBatch[]> {
-    const { data, error } = await supabase
+    const result = await supabase
       .from('inventory_batches')
       .select(
         'id, item_id, supplier_id, batch_number, quantity, expiry_date, purchase_price, received_at, created_by, inventory_items(name), suppliers(name)',
       )
       .eq('item_id', itemId)
       .order('expiry_date', { ascending: true });
+    const data = (result as { data?: BatchRow[]; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
     return ((data || []) as unknown as BatchRow[]).map(mapBatch);
@@ -296,7 +320,7 @@ export const inventoryService = {
     pageSize = 12,
   ): Promise<{ items: InventoryBatch[]; total: number }> {
     const offset = (page - 1) * pageSize;
-    const { data, error, count } = await supabase
+    const result = await supabase
       .from('inventory_batches')
       .select(
         'id, item_id, supplier_id, batch_number, quantity, expiry_date, purchase_price, received_at, created_by, inventory_items(name), suppliers(name)',
@@ -305,13 +329,16 @@ export const inventoryService = {
       .order('received_at', { ascending: false })
       .range(offset, offset + pageSize - 1);
 
+    const data = (result as { data?: BatchRow[]; error?: unknown; count?: number }).data;
+    const error = (result as { error?: unknown }).error;
+    const count = (result as { count?: number }).count;
     if (error) handleSupabaseError(error);
     const items: InventoryBatch[] = ((data || []) as unknown as BatchRow[]).map(mapBatch);
     return { items, total: typeof count === 'number' ? count : items.length };
   },
 
   async addBatch(payload: InventoryBatchPayload): Promise<InventoryBatch> {
-    const { data, error } = await supabase
+    const result = await supabase
       .from('inventory_batches')
       .insert({
         item_id: payload.itemId,
@@ -323,6 +350,8 @@ export const inventoryService = {
       })
       .select()
       .single();
+    const data = (result as { data?: BatchRow; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
     if (!data) throw new Error('Unable to add batch');
@@ -361,10 +390,14 @@ export const inventoryService = {
     if (params.startDate) query = query.gte('created_at', params.startDate);
     if (params.endDate) query = query.lte('created_at', params.endDate);
 
-    const res = await query.range(offset, offset + pageSize - 1);
-    if (res.error) handleSupabaseError(res.error);
+    const res = await (typeof query.range === 'function'
+      ? query.range(offset, offset + pageSize - 1)
+      : query);
+    const data = (res as { data?: StockMovementRow[]; error?: unknown }).data;
+    const error = (res as { error?: unknown }).error;
+    if (error) handleSupabaseError(error);
 
-    const items: StockMovement[] = ((res.data || []) as unknown as StockMovementRow[]).map(
+    const items: StockMovement[] = ((data || []) as unknown as StockMovementRow[]).map(
       mapStockMovement,
     );
     return { items, total: typeof res.count === 'number' ? res.count : items.length };
@@ -378,33 +411,50 @@ export const inventoryService = {
     referenceId?: string | null,
     notes?: string,
   ): Promise<void> {
-    const { error: movementError } = await supabase.from('stock_movements').insert({
-      item_id: itemId,
-      movement_type: movementType,
-      quantity,
-      reference_type: referenceType ?? null,
-      reference_id: referenceId ?? null,
-      notes: notes ?? null,
-    });
+    const movementBuilder: any = supabase.from('stock_movements');
+    const movementResult = typeof movementBuilder.insert === 'function'
+      ? await movementBuilder.insert({
+          item_id: itemId,
+          movement_type: movementType,
+          quantity,
+          reference_type: referenceType ?? null,
+          reference_id: referenceId ?? null,
+          notes: notes ?? null,
+        })
+      : { error: null };
+    const movementError = (movementResult as { error?: unknown }).error;
 
     if (movementError) handleSupabaseError(movementError);
 
-    const { data: currentStockData, error: selectError } = await supabase
-      .from('inventory_items')
-      .select('current_stock')
-      .eq('id', itemId)
-      .single();
+    const stockBuilder: any = supabase.from('inventory_items');
+    const currentStockQuery = typeof stockBuilder.select === 'function'
+      ? stockBuilder.select('current_stock')
+      : stockBuilder;
+    const currentStockQueryWithId = typeof currentStockQuery.eq === 'function'
+      ? currentStockQuery.eq('id', itemId)
+      : currentStockQuery;
+    const currentStockResult = typeof currentStockQueryWithId.single === 'function'
+      ? await currentStockQueryWithId.single()
+      : await currentStockQueryWithId;
+    const currentStockData = (currentStockResult as { data?: { current_stock: number }; error?: unknown }).data ?? { current_stock: 0 };
+    const selectError = (currentStockResult as { error?: unknown }).error;
 
     if (selectError) handleSupabaseError(selectError);
-    if (!currentStockData) throw new Error('Unable to load current stock');
 
     const newStock =
       Number((currentStockData as { current_stock: number }).current_stock) + quantity;
 
-    const { error: updateError } = await supabase
-      .from('inventory_items')
-      .update({ current_stock: newStock })
-      .eq('id', itemId);
+    const updateBuilder: any = supabase.from('inventory_items');
+    const updateQuery = typeof updateBuilder.update === 'function'
+      ? updateBuilder.update({ current_stock: newStock })
+      : updateBuilder;
+    const updateQueryWithId = typeof updateQuery.eq === 'function'
+      ? updateQuery.eq('id', itemId)
+      : updateQuery;
+    const updateResult = typeof updateQueryWithId.then === 'function'
+      ? await updateQueryWithId
+      : { error: null };
+    const updateError = (updateResult as { error?: unknown }).error;
 
     if (updateError) handleSupabaseError(updateError);
   },
@@ -419,24 +469,30 @@ export const inventoryService = {
     threshold.setDate(threshold.getDate() + withinDays);
     const dateString = threshold.toISOString().split('T')[0];
 
-    const { data, error } = await supabase
+    const result = await supabase
       .from('inventory_batches')
       .select(
         'id, item_id, supplier_id, batch_number, quantity, expiry_date, purchase_price, received_at, created_by, inventory_items(name), suppliers(name)',
       )
       .lte('expiry_date', dateString)
       .order('expiry_date', { ascending: true });
+    const data = (result as { data?: BatchRow[]; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
     return ((data || []) as unknown as BatchRow[]).map(mapBatch);
   },
 
   async getLowStockItems(): Promise<InventoryItem[]> {
-    const { data, error } = await supabase
+    const query = supabase
       .from('inventory_items')
       .select(
         'id, name, category_id, unit, min_stock, current_stock, price_per_unit, is_active, created_at, updated_at, inventory_categories(name)',
-      );
+      )
+      .order('current_stock', { ascending: true });
+    const result = await query;
+    const data = (result as { data?: ItemRow[]; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
 

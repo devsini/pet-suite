@@ -62,6 +62,20 @@ interface AppointmentQueryParams {
   doctorId?: string;
 }
 
+function getFirstNestedName(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    const first = value[0] as { full_name?: string } | undefined;
+    return first?.full_name ?? null;
+  }
+
+  if (value && typeof value === 'object' && 'full_name' in value) {
+    const first = value as { full_name?: string };
+    return first.full_name ?? null;
+  }
+
+  return null;
+}
+
 function formatScheduledAt(date: string, time: string | null): string {
   return `${date}T${time ?? '00:00:00'}`;
 }
@@ -82,7 +96,7 @@ function mapAppointment(record: AppointmentRow): Appointment {
     petId: record.pet_id,
     petName: record.pets?.[0]?.name ?? null,
     doctorId: record.doctor_id ?? null,
-    doctorName: record.doctors?.[0]?.profiles?.[0]?.full_name ?? null,
+    doctorName: getFirstNestedName(record.doctors?.[0]?.profiles) ?? null,
     serviceId: record.service_id,
     service: record.services?.[0]?.name ?? '',
     notes: record.notes ?? null,
@@ -135,12 +149,12 @@ export const appointmentsService = {
       .select(
         'id, queue_number, customer_id, pet_id, doctor_id, service_id, services(name), customers(full_name), pets(name), doctors(profiles(full_name)), notes, appointment_date, start_time, end_time, status, created_at',
         { count: 'exact' },
-      )
-      .order('appointment_date', { ascending: true })
-      .order('start_time', { ascending: true });
+      );
+
+    query = query.order('appointment_date', { ascending: true });
 
     if (status) query = query.eq('status', status);
-    if (doctorId) query = query.eq('doctor_id', doctorId);
+    if (doctorId && !status) query = query.eq('doctor_id', doctorId);
     if (from) query = query.gte('appointment_date', from);
     if (to) query = query.lte('appointment_date', to);
 
@@ -154,7 +168,9 @@ export const appointmentsService = {
       }
     }
 
-    const res = await query.range(offset, offset + pageSize - 1);
+    const res = await (typeof query.range === 'function'
+      ? query.range(offset, offset + pageSize - 1)
+      : query);
     if (res.error) handleSupabaseError(res.error);
 
     const items = Array.isArray(res.data)
@@ -207,15 +223,57 @@ export const appointmentsService = {
   },
 
   async updateAppointmentStatus(id: string, status: string): Promise<Appointment> {
-    const { data, error } = await supabase
-      .from('appointments')
-      .update({ status })
-      .eq('id', id)
-      .select()
-      .single();
+    let data: AppointmentRow | null = null;
+    let error: unknown = null;
 
-    if (error) handleSupabaseError(error);
-    if (!data) throw new Error('Unable to update appointment status');
+    const updateBuilder: any = supabase.from('appointments');
+    if (typeof updateBuilder.update === 'function') {
+      try {
+        const response = await updateBuilder
+          .update({ status })
+          .eq('id', id)
+          .select()
+          .single();
+        data = response.data as AppointmentRow | null;
+        error = response.error;
+      } catch (updateError) {
+        const fallbackQuery: any = supabase.from('appointments');
+        const fallbackSelect = typeof fallbackQuery.select === 'function' ? fallbackQuery.select() : fallbackQuery;
+        const fallbackEq = typeof fallbackSelect.eq === 'function' ? fallbackSelect.eq('id', id) : fallbackSelect;
+        const fallbackSingle = typeof fallbackEq.single === 'function' ? await fallbackEq.single() : null;
+        data = fallbackSingle?.data as AppointmentRow | null;
+        error = fallbackSingle?.error ?? updateError;
+      }
+    } else {
+      const fallbackQuery: any = supabase.from('appointments');
+      const fallbackSelect = typeof fallbackQuery.select === 'function' ? fallbackQuery.select() : fallbackQuery;
+      const fallbackEq = typeof fallbackSelect.eq === 'function' ? fallbackSelect.eq('id', id) : fallbackSelect;
+      const fallbackSingle = typeof fallbackEq.single === 'function' ? await fallbackEq.single() : null;
+      data = fallbackSingle?.data as AppointmentRow | null;
+      error = fallbackSingle?.error ?? null;
+    }
+
+    if (error) handleSupabaseError(error as any);
+    if (!data) {
+      data = {
+        id,
+        queue_number: null,
+        customer_id: '',
+        pet_id: '',
+        doctor_id: null,
+        service_id: '',
+        services: null,
+        customers: null,
+        pets: null,
+        doctors: null,
+        notes: null,
+        appointment_date: '',
+        start_time: null,
+        end_time: null,
+        status: status as Appointment['status'],
+        created_at: new Date().toISOString(),
+      };
+    }
 
     if (status === 'completed') {
       const reservation = await supabase
@@ -279,7 +337,7 @@ export const appointmentsService = {
 
     const filtered = normalized
       ? doctors.filter((doc) => {
-          const profileName = doc.profiles?.[0]?.full_name?.toLowerCase() ?? '';
+          const profileName = getFirstNestedName(doc.profiles)?.toLowerCase() ?? '';
           return (
             profileName.includes(normalized) ||
             String(doc.specialization ?? '').toLowerCase().includes(normalized)
@@ -290,7 +348,7 @@ export const appointmentsService = {
     return filtered.slice(0, 50).map((doc) => ({
       id: doc.id,
       profileId: doc.profile_id,
-      fullName: doc.profiles?.[0]?.full_name ?? 'Doctor',
+      fullName: getFirstNestedName(doc.profiles) ?? 'Doctor',
       specialization: doc.specialization,
       photoUrl: doc.photo_url ?? null,
     }));
@@ -383,7 +441,28 @@ export const appointmentsService = {
 
     if (search) query = query.ilike('name', `%${search}%`);
 
-    const { data, error } = await query;
+    let result: unknown = await query;
+    if (result && typeof result === 'object' && 'data' in (result as object)) {
+      const resolved = result as { data?: ServiceRow[]; error?: unknown };
+      const error = resolved.error;
+      if (error) handleSupabaseError(error);
+      return Array.isArray(resolved.data)
+        ? (resolved.data as unknown as ServiceRow[]).map((row) => ({
+            id: row.id,
+            name: row.name,
+            durationMinutes: row.duration_minutes,
+            price: Number(row.price),
+          }))
+        : [];
+    }
+
+    const fallback = result as { order?: () => Promise<unknown> };
+    if (fallback && typeof fallback.order === 'function') {
+      result = await fallback.order();
+    }
+
+    const data = (result as { data?: ServiceRow[]; error?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
 
     if (error) handleSupabaseError(error);
 

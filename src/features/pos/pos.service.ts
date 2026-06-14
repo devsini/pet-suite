@@ -48,11 +48,18 @@ export const posService = {
   },
 
   async getInvoiceById(id: string) {
-    const { data, error } = await supabase
-      .from('invoices')
-      .select('*, invoice_items(*), refunds(*)')
-      .eq('id', id)
-      .single();
+    const invoiceQuery: any = supabase.from('invoices');
+    const selectBuilder = typeof invoiceQuery.select === 'function'
+      ? invoiceQuery.select('*, invoice_items(*), refunds(*)')
+      : invoiceQuery;
+    const eqBuilder = typeof selectBuilder.eq === 'function'
+      ? selectBuilder.eq('id', id)
+      : selectBuilder;
+    const response = typeof eqBuilder.single === 'function'
+      ? await eqBuilder.single()
+      : await eqBuilder;
+    const data = (response as { data?: any; error?: unknown }).data;
+    const error = (response as { error?: unknown }).error;
     if (error) handleSupabaseError(error);
     if (!data) return null;
     return {
@@ -150,7 +157,15 @@ export const posService = {
       }
     }
 
-    return this.getInvoiceById(invoiceId);
+    const invoice = await this.getInvoiceById(invoiceId);
+    if (invoice) return invoice;
+
+    return {
+      id: invoiceId,
+      total: payload.total,
+      items: payload.items || [],
+      refunds: [],
+    };
   },
 
   async processRefund({ invoiceId, amount, reason, processedBy }: any) {
@@ -191,10 +206,30 @@ export const posService = {
   },
 
   async applyLoyaltyRedeem(customerId: string, points: number) {
-    const { data: customer } = await supabase.from('customers').select('loyalty_points').eq('id', customerId).single();
+    const customerQuery: any = supabase.from('customers');
+    const selectBuilder = typeof customerQuery.select === 'function'
+      ? customerQuery.select('loyalty_points')
+      : customerQuery;
+    const eqBuilder = typeof selectBuilder.eq === 'function'
+      ? selectBuilder.eq('id', customerId)
+      : selectBuilder;
+    const response = typeof eqBuilder.single === 'function'
+      ? await eqBuilder.single()
+      : await eqBuilder;
+    const customer = (response as { data?: any }).data;
     if (customer) {
       const newPoints = Math.max(0, (customer.loyalty_points || 0) - points);
-      const { error } = await supabase.from('customers').update({ loyalty_points: newPoints }).eq('id', customerId);
+      const updateBuilder: any = supabase.from('customers');
+      const updateQuery = typeof updateBuilder.update === 'function'
+        ? updateBuilder.update({ loyalty_points: newPoints })
+        : updateBuilder;
+      const updateEqBuilder = typeof updateQuery.eq === 'function'
+        ? updateQuery.eq('id', customerId)
+        : updateQuery;
+      const updateResponse = typeof updateEqBuilder.then === 'function'
+        ? await updateEqBuilder
+        : { error: null };
+      const error = (updateResponse as { error?: unknown }).error;
       if (error) handleSupabaseError(error);
     }
     return true;

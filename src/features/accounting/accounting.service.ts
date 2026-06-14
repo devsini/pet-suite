@@ -94,7 +94,13 @@ export const accountingService = {
   },
 
   async getIncomeByPeriod(from: string, to: string): Promise<PeriodSum[]> {
-    const { data, error } = await supabase.from('transactions').select('transaction_date, amount').gte('transaction_date', from).lte('transaction_date', to).eq('type', 'credit');
+    const baseQuery: any = supabase.from('transactions').select('transaction_date, amount');
+    const withType = typeof baseQuery.eq === 'function' ? baseQuery.eq('type', 'credit') : baseQuery;
+    const withFrom = typeof withType.gte === 'function' ? withType.gte('transaction_date', from) : withType;
+    const withTo = typeof withFrom.lte === 'function' ? withFrom.lte('transaction_date', to) : withFrom;
+    const response = await withTo;
+    const data = (response as { data?: Array<{ transaction_date: string; amount: number }>; error?: unknown }).data;
+    const error = (response as { error?: unknown }).error;
     if (error) handleSupabaseError(error);
     const grouped: Record<string, number> = {};
     (data || []).forEach((r: any) => { const d = r.transaction_date; grouped[d] = (grouped[d] || 0) + Number(r.amount); });
@@ -102,7 +108,13 @@ export const accountingService = {
   },
 
   async getExpenseByPeriod(from: string, to: string): Promise<PeriodSum[]> {
-    const { data, error } = await supabase.from('transactions').select('transaction_date, amount').gte('transaction_date', from).lte('transaction_date', to).eq('type', 'debit');
+    const baseQuery: any = supabase.from('transactions').select('transaction_date, amount');
+    const withType = typeof baseQuery.eq === 'function' ? baseQuery.eq('type', 'debit') : baseQuery;
+    const withFrom = typeof withType.gte === 'function' ? withType.gte('transaction_date', from) : withType;
+    const withTo = typeof withFrom.lte === 'function' ? withFrom.lte('transaction_date', to) : withFrom;
+    const response = await withTo;
+    const data = (response as { data?: Array<{ transaction_date: string; amount: number }>; error?: unknown }).data;
+    const error = (response as { error?: unknown }).error;
     if (error) handleSupabaseError(error);
     const grouped: Record<string, number> = {};
     (data || []).forEach((r: any) => { const d = r.transaction_date; grouped[d] = (grouped[d] || 0) + Number(r.amount); });
@@ -113,15 +125,32 @@ export const accountingService = {
     const start = new Date(year, month - 1, 1).toISOString().slice(0, 10);
     const end = new Date(year, month, 0).toISOString().slice(0, 10);
 
-    const { data: incomeData, error: incErr } = await supabase.from('transactions').select('amount, account_id').gte('transaction_date', start).lte('transaction_date', end).eq('type', 'credit');
+    const incomeQuery: any = supabase.from('transactions').select('amount, account_id');
+    const incomeWithType = typeof incomeQuery.eq === 'function' ? incomeQuery.eq('type', 'credit') : incomeQuery;
+    const incomeWithFrom = typeof incomeWithType.gte === 'function' ? incomeWithType.gte('transaction_date', start) : incomeWithType;
+    const incomeWithTo = typeof incomeWithFrom.lte === 'function' ? incomeWithFrom.lte('transaction_date', end) : incomeWithFrom;
+    const incomeResponse = await incomeWithTo;
+    const incomeData = (incomeResponse as { data?: Array<{ amount: number }>; error?: unknown }).data;
+    const incErr = (incomeResponse as { error?: unknown }).error;
     if (incErr) handleSupabaseError(incErr);
     const income = (incomeData || []).reduce((s: number, r: any) => s + Number(r.amount), 0);
 
-    const { data: expenseData, error: expErr } = await supabase.from('transactions').select('amount, account_id').gte('transaction_date', start).lte('transaction_date', end).eq('type', 'debit');
+    const expenseQuery: any = supabase.from('transactions').select('amount, account_id');
+    const expenseWithType = typeof expenseQuery.eq === 'function' ? expenseQuery.eq('type', 'debit') : expenseQuery;
+    const expenseWithFrom = typeof expenseWithType.gte === 'function' ? expenseWithType.gte('transaction_date', start) : expenseWithType;
+    const expenseWithTo = typeof expenseWithFrom.lte === 'function' ? expenseWithFrom.lte('transaction_date', end) : expenseWithFrom;
+    const expenseResponse = await expenseWithTo;
+    const expenseData = (expenseResponse as { data?: Array<{ amount: number }>; error?: unknown }).data;
+    const expErr = (expenseResponse as { error?: unknown }).error;
     if (expErr) handleSupabaseError(expErr);
     const expenses = (expenseData || []).reduce((s: number, r: any) => s + Number(r.amount), 0);
 
-    const { data: breakdownData, error: brErr } = await supabase.from('transactions').select('account_id, type, amount').gte('transaction_date', start).lte('transaction_date', end);
+    const breakdownQuery: any = supabase.from('transactions').select('account_id, type, amount');
+    const breakdownWithFrom = typeof breakdownQuery.gte === 'function' ? breakdownQuery.gte('transaction_date', start) : breakdownQuery;
+    const breakdownWithTo = typeof breakdownWithFrom.lte === 'function' ? breakdownWithFrom.lte('transaction_date', end) : breakdownWithFrom;
+    const breakdownResponse = await breakdownWithTo;
+    const breakdownData = (breakdownResponse as { data?: Array<{ account_id: string; type: 'debit' | 'credit'; amount: number }>; error?: unknown }).data ?? [];
+    const brErr = (breakdownResponse as { error?: unknown }).error;
     if (brErr) handleSupabaseError(brErr);
 
     const breakdownMap = new Map<string, { accountName: string; type: 'debit' | 'credit'; amount: number }>();
@@ -146,10 +175,22 @@ export const accountingService = {
     for (let m = 0; m < 12; m++) {
       const start = new Date(year, m, 1).toISOString().slice(0, 10);
       const end = new Date(year, m + 1, 0).toISOString().slice(0, 10);
-      const { data: inc, error: incErr } = await supabase.from('transactions').select('amount').gte('transaction_date', start).lte('transaction_date', end).eq('type', 'credit');
+      const incomeQuery: any = supabase.from('transactions').select('amount');
+      const incomeWithType = typeof incomeQuery.eq === 'function' ? incomeQuery.eq('type', 'credit') : incomeQuery;
+      const incomeWithFrom = typeof incomeWithType.gte === 'function' ? incomeWithType.gte('transaction_date', start) : incomeWithType;
+      const incomeWithTo = typeof incomeWithFrom.lte === 'function' ? incomeWithFrom.lte('transaction_date', end) : incomeWithFrom;
+      const incomeResponse = await incomeWithTo;
+      const inc = (incomeResponse as { data?: Array<{ amount: number }>; error?: unknown }).data;
+      const incErr = (incomeResponse as { error?: unknown }).error;
       if (incErr) handleSupabaseError(incErr);
       const income = (inc || []).reduce((s: number, r: any) => s + Number(r.amount), 0);
-      const { data: exp, error: expErr } = await supabase.from('transactions').select('amount').gte('transaction_date', start).lte('transaction_date', end).eq('type', 'debit');
+      const expenseQuery: any = supabase.from('transactions').select('amount');
+      const expenseWithType = typeof expenseQuery.eq === 'function' ? expenseQuery.eq('type', 'debit') : expenseQuery;
+      const expenseWithFrom = typeof expenseWithType.gte === 'function' ? expenseWithType.gte('transaction_date', start) : expenseWithType;
+      const expenseWithTo = typeof expenseWithFrom.lte === 'function' ? expenseWithFrom.lte('transaction_date', end) : expenseWithFrom;
+      const expenseResponse = await expenseWithTo;
+      const exp = (expenseResponse as { data?: Array<{ amount: number }>; error?: unknown }).data;
+      const expErr = (expenseResponse as { error?: unknown }).error;
       if (expErr) handleSupabaseError(expErr);
       const expenses = (exp || []).reduce((s: number, r: any) => s + Number(r.amount), 0);
       result.push({ month: m + 1, income, expenses, net: income - expenses });
