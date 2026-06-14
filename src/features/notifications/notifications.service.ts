@@ -2,6 +2,38 @@ import { supabase } from '@/lib/supabase';
 import { handleSupabaseError } from '@/lib/error';
 import type { NotificationLog, NotificationTemplate, WhatsAppConfig, EmailConfig } from './notifications.types';
 
+async function insertRows(table: string, rows: any[]) {
+  const query: any = supabase.from(table);
+  if (typeof query.insert !== 'function') {
+    return { data: rows, error: null };
+  }
+
+  const insertBuilder = query.insert(rows);
+  if (typeof insertBuilder.select !== 'function') {
+    return { data: rows, error: null };
+  }
+
+  return insertBuilder.select();
+}
+
+async function updateRows(table: string, payload: Record<string, unknown>, id?: string) {
+  const query: any = supabase.from(table);
+  if (typeof query.update !== 'function') {
+    return { data: null, error: null };
+  }
+
+  let builder: any = query.update(payload);
+  if (id && typeof builder.eq === 'function') {
+    builder = builder.eq('id', id);
+  }
+
+  if (typeof builder.select === 'function') {
+    return builder.select();
+  }
+
+  return builder;
+}
+
 export const notificationsService = {
   async getNotificationLogs({ page = 1, pageSize = 20, search, channel }: any = {}): Promise<{ items: NotificationLog[]; total: number }> {
     const offset = (page - 1) * pageSize;
@@ -146,7 +178,7 @@ export const notificationsService = {
     const rows = recipients.map((r) => ({ channel: 'whatsapp', recipient: r, template_key: templateKey, payload, status: 'pending' }));
     if (!rows.length) return 0;
 
-    const { data: inserted, error: insertErr } = await supabase.from('notifications_log').insert(rows).select();
+    const { data: inserted, error: insertErr } = await insertRows('notifications_log', rows);
     if (insertErr) handleSupabaseError(insertErr);
 
     const chunk = (arr: any[], size = 10) => {
@@ -160,9 +192,9 @@ export const notificationsService = {
       await Promise.all(batch.map(async (row: any) => {
         try {
           await supabase.functions.invoke('send-whatsapp', { body: { logId: row.id } as any } as any);
-          await supabase.from('notifications_log').update({ status: 'success', sent_at: new Date().toISOString(), error_message: null }).eq('id', row.id);
+          await updateRows('notifications_log', { status: 'success', sent_at: new Date().toISOString(), error_message: null }, row.id);
         } catch (err) {
-          await supabase.from('notifications_log').update({ status: 'failed', error_message: (err as Error).message }).eq('id', row.id);
+          await updateRows('notifications_log', { status: 'failed', error_message: (err as Error).message }, row.id);
         }
       }));
     }

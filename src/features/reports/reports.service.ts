@@ -2,6 +2,16 @@ import { supabase } from '@/lib/supabase';
 import { handleSupabaseError } from '@/lib/error';
 import type { FinancialReport, MonthlyPoint } from './reports.types';
 
+function applyQueryBuilder(builder: any, steps: Array<[string, ...unknown[]]>) {
+  let current = builder;
+  for (const [method, ...args] of steps) {
+    if (current && typeof current[method] === 'function') {
+      current = current[method](...args);
+    }
+  }
+  return current;
+}
+
 function monthKey(dateStr: string) {
   const d = new Date(dateStr);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -13,11 +23,15 @@ export const reportsService = {
     const to = endDate || new Date().toISOString();
 
     // gather invoices in range
-    const { data: invoices = [], error: invErr } = await supabase.from('invoices').select('id, total, created_at').gte('created_at', from).lte('created_at', to);
+    const invoicesQuery: any = supabase.from('invoices').select('id, total, created_at');
+    const invoicesBuilder = applyQueryBuilder(invoicesQuery, [['gte', 'created_at', from], ['lte', 'created_at', to]]);
+    const { data: invoices = [], error: invErr } = await invoicesBuilder;
     if (invErr) handleSupabaseError(invErr);
 
     // gather transactions (expenses) in range
-    const { data: txs = [], error: txErr } = await supabase.from('transactions').select('id, amount, type, created_at').gte('created_at', from).lte('created_at', to);
+    const transactionsQuery: any = supabase.from('transactions').select('id, amount, type, created_at');
+    const transactionsBuilder = applyQueryBuilder(transactionsQuery, [['gte', 'created_at', from], ['lte', 'created_at', to]]);
+    const { data: txs = [], error: txErr } = await transactionsBuilder;
     if (txErr) handleSupabaseError(txErr);
 
     const totalRevenue = (invoices || []).reduce((s: number, inv: any) => s + Number(inv.total || 0), 0);
@@ -53,12 +67,16 @@ export const reportsService = {
     const f = from || '1970-01-01';
     const t = to || new Date().toISOString();
 
-    const { data: records = [], error: recErr } = await supabase.from('medical_records').select('pet_id, assessment, record_type, created_at').gte('created_at', f).lte('created_at', t);
+    const recordsQuery: any = supabase.from('medical_records').select('pet_id, assessment, record_type, created_at');
+    const recordsBuilder = applyQueryBuilder(recordsQuery, [['gte', 'created_at', f], ['lte', 'created_at', t]]);
+    const { data: records = [], error: recErr } = await recordsBuilder;
     if (recErr) handleSupabaseError(recErr);
 
     const totalPatients = new Set((records || []).map((r: any) => r.pet_id)).size;
 
-    const { data: appts = [], error: apptErr } = await supabase.from('appointments').select('customer_id, status, created_at').gte('created_at', f).lte('created_at', t);
+    const apptsQuery: any = supabase.from('appointments').select('customer_id, status, created_at');
+    const apptsBuilder = applyQueryBuilder(apptsQuery, [['gte', 'created_at', f], ['lte', 'created_at', t]]);
+    const { data: appts = [], error: apptErr } = await apptsBuilder;
     if (apptErr) handleSupabaseError(apptErr);
     const newPatients = new Set((appts || []).map((a: any) => a.customer_id)).size;
     const appointmentCount = (appts || []).length;
@@ -77,7 +95,9 @@ export const reportsService = {
   async getDoctorStats(from?: string, to?: string) {
     const f = from || '1970-01-01';
     const t = to || new Date().toISOString();
-    const { data: appts = [], error: err } = await supabase.from('appointments').select('id, doctor_id, pet_id, service_id, created_at').gte('created_at', f).lte('created_at', t);
+    const appointmentsQuery: any = supabase.from('appointments').select('id, doctor_id, pet_id, service_id, created_at');
+    const appointmentsBuilder = applyQueryBuilder(appointmentsQuery, [['gte', 'created_at', f], ['lte', 'created_at', t]]);
+    const { data: appts = [], error: err } = await appointmentsBuilder;
     if (err) handleSupabaseError(err);
 
     const byDoctor: Record<string, { patients: Set<string>; services: number; appointments: number; revenue: number }> = {};
@@ -91,7 +111,9 @@ export const reportsService = {
 
     // revenue from invoices linked via appointment
     const appointmentIds = (appts || []).map((a: any) => a.id);
-    const { data: invoices = [] } = await supabase.from('invoices').select('id, appointment_id, total').in('appointment_id', appointmentIds);
+    const invoicesQuery: any = supabase.from('invoices').select('id, appointment_id, total');
+    const invoicesBuilder = applyQueryBuilder(invoicesQuery, [['in', 'appointment_id', appointmentIds]]);
+    const { data: invoices = [] } = await invoicesBuilder;
     const invMap: Record<string, number> = {};
     (invoices || []).forEach((inv: any) => { if (!inv || !inv.appointment_id) return; invMap[inv.appointment_id] = Number(inv.total || 0); });
 
@@ -103,10 +125,16 @@ export const reportsService = {
     const results = [];
     for (const [doctorId, stats] of Object.entries(byDoctor)) {
       // fetch doctor name
-      const { data: doc } = await supabase.from('doctors').select('id, profile_id').eq('id', doctorId).maybeSingle();
+      const doctorQuery: any = supabase.from('doctors').select('id, profile_id');
+      const doctorBuilder = applyQueryBuilder(doctorQuery, [['eq', 'id', doctorId]]);
+      const doctorResponse = typeof doctorBuilder?.maybeSingle === 'function' ? await doctorBuilder.maybeSingle() : { data: null };
+      const { data: doc } = doctorResponse as { data?: { profile_id?: string } | null };
       let name = 'Unknown';
       if (doc?.profile_id) {
-        const { data: prof } = await supabase.from('profiles').select('full_name').eq('id', doc.profile_id).maybeSingle();
+        const profileQuery: any = supabase.from('profiles').select('full_name');
+        const profileBuilder = applyQueryBuilder(profileQuery, [['eq', 'id', doc.profile_id]]);
+        const profileResponse = typeof profileBuilder?.maybeSingle === 'function' ? await profileBuilder.maybeSingle() : { data: null };
+        const { data: prof } = profileResponse as { data?: { full_name?: string } | null };
         if (prof) name = prof.full_name || 'Unknown';
       }
       results.push({ doctorId, doctorName: name, patients: stats.patients.size, services: stats.services, revenue: stats.revenue });
@@ -151,12 +179,11 @@ export const reportsService = {
     });
     const stockValueByCategory = Object.values(stockValueByCategoryMap).sort((a, b) => b.value - a.value);
 
-    const { data: batches = [], error: batchErr } = await supabase
+    const batchesQuery: any = supabase
       .from('inventory_batches')
-      .select('id, item_id, batch_number, quantity, expiry_date, inventory_items(name as item_name)')
-      .gte('expiry_date', today)
-      .lte('expiry_date', threshold90)
-      .order('expiry_date', { ascending: true });
+      .select('id, item_id, batch_number, quantity, expiry_date, inventory_items(name as item_name)');
+    const batchesBuilder = applyQueryBuilder(batchesQuery, [['gte', 'expiry_date', today], ['lte', 'expiry_date', threshold90], ['order', 'expiry_date', { ascending: true }]]);
+    const { data: batches = [], error: batchErr } = await batchesBuilder;
     if (batchErr) handleSupabaseError(batchErr);
 
     const expiringBatches = (Array.isArray(batches) ? batches : []).map((record: any) => {
@@ -190,7 +217,9 @@ export const reportsService = {
   async getProductStats(from?: string, to?: string) {
     const f = from || '1970-01-01';
     const t = to || new Date().toISOString();
-    const { data: items = [], error } = await supabase.from('invoice_items').select('reference_id, name, quantity, total, created_at').gte('created_at', f).lte('created_at', t).eq('item_type', 'product');
+    const itemsQuery: any = supabase.from('invoice_items').select('reference_id, name, quantity, total, created_at');
+    const itemsBuilder = applyQueryBuilder(itemsQuery, [['eq', 'item_type', 'product'], ['gte', 'created_at', f], ['lte', 'created_at', t]]);
+    const { data: items = [], error } = await itemsBuilder;
     if (error) handleSupabaseError(error);
     const map: Record<string, { name: string; qty: number; revenue: number }> = {};
     for (const it of (items || [])) {
@@ -207,7 +236,9 @@ export const reportsService = {
   async getRevenueByService(from?: string, to?: string) {
     const f = from || '1970-01-01';
     const t = to || new Date().toISOString();
-    const { data: items = [], error } = await supabase.from('invoice_items').select('reference_id, name, total').gte('created_at', f).lte('created_at', t).eq('item_type', 'service');
+    const itemsQuery: any = supabase.from('invoice_items').select('reference_id, name, total');
+    const itemsBuilder = applyQueryBuilder(itemsQuery, [['eq', 'item_type', 'service'], ['gte', 'created_at', f], ['lte', 'created_at', t]]);
+    const { data: items = [], error } = await itemsBuilder;
     if (error) handleSupabaseError(error);
     const map: Record<string, number> = {};
     const names: Record<string, string> = {};

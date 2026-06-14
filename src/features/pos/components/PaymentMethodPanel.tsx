@@ -128,8 +128,9 @@ export function PaymentMethodPanel({
 
       {(method !== 'cash' || (splitEnabled && methodSecondary && ['card', 'bank-transfer', 'e-wallet'].includes(methodSecondary))) ? (
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Reference / Note</label>
+          <label htmlFor="payment-reference" className="block text-sm font-medium text-slate-700 dark:text-slate-200">Reference / Note</label>
           <Input
+            id="payment-reference"
             type="text"
             value={reference ?? ''}
             placeholder="Payment reference (optional)"

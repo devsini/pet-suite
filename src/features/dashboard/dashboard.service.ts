@@ -169,10 +169,11 @@ export const dashboardService = {
       },
     );
 
-    const lowStockCount = (
-      (lowStockResult.data as unknown as InventoryRow[]) || []
-    ).filter(isLowStock).length;
-
+    const lowStockData = (lowStockResult.data as unknown as InventoryRow[] | null) || [];
+    const lowStockCount = Array.isArray(lowStockData)
+      ? lowStockData.filter(isLowStock).length
+      : Number(lowStockResult.count ?? 0);
+    const fallbackLowStockCount = Number(lowStockResult.count ?? 0);
     return {
       revenueToday: (revenueResult.data || []).reduce(
         (sum: number, invoice: { total?: number }) => sum + Number(invoice.total ?? 0),
@@ -181,8 +182,9 @@ export const dashboardService = {
       appointmentsToday: appointmentsResult.count ?? 0,
       activeInpatients: inpatientResult.count ?? 0,
       pendingVaccinations: vaccinationsResult.count ?? 0,
-      lowStockCount,
+      lowStockCount: lowStockCount || fallbackLowStockCount,
     };
+
   },
 
   async getWeeklyRevenue(): Promise<WeeklyRevenuePoint[]> {
@@ -330,9 +332,9 @@ export const dashboardService = {
           id: row.id,
           appointmentDate: row.appointment_date,
           startTime: row.start_time,
-          service: row.services?.[0]?.name ?? null,
-          petName: row.pets?.[0]?.name ?? null,
-          customerName: row.customers?.[0]?.full_name ?? null,
+          service: Array.isArray(row.services) ? row.services[0]?.name ?? null : (row.services as any)?.name ?? null,
+          petName: Array.isArray(row.pets) ? row.pets[0]?.name ?? null : (row.pets as any)?.name ?? null,
+          customerName: Array.isArray(row.customers) ? row.customers[0]?.full_name ?? null : (row.customers as any)?.full_name ?? null,
           status: row.status,
         }),
       ),
@@ -340,7 +342,7 @@ export const dashboardService = {
         (medicalRecordsResult.data || []) as unknown as MedicalRecordRow[]
       ).map((row) => ({
         id: row.id,
-        petName: row.pets?.[0]?.name ?? null,
+        petName: Array.isArray(row.pets) ? row.pets[0]?.name ?? null : (row.pets as any)?.name ?? null,
         createdAt: row.created_at,
         recordType: row.record_type ?? 'Record',
       })),

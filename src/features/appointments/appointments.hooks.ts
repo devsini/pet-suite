@@ -6,23 +6,39 @@ export function useAppointments(params: any) {
 }
 
 export function useAppointment(id?: string) {
-  return useQuery(['appointment', id], () => (id ? appointmentsService.getAppointmentById(id) : null), { enabled: !!id });
+  const query = useQuery(['appointment', id], () => (id ? appointmentsService.getAppointmentById(id) : null), { enabled: !!id, retry: false });
+
+  if (!id) {
+    return {
+      ...query,
+      data: null,
+      isLoading: false,
+      isSuccess: true,
+      isError: false,
+    };
+  }
+
+  return query;
 }
 
 export function useCreateAppointment() {
   const qc = useQueryClient();
-  return useMutation((payload: any) => appointmentsService.createAppointment(payload), {
-    onSuccess: () => qc.invalidateQueries(['appointments'])
+  return useMutation({
+    mutationFn: (payload: any) => appointmentsService.createAppointment(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries(['appointments']);
+    }
   });
 }
 
 export function useUpdateAppointmentStatus() {
   const qc = useQueryClient();
-  return useMutation(({ id, status }: any) => appointmentsService.updateAppointmentStatus(id, status), {
+  return useMutation({
+    mutationFn: ({ id, status }: any) => appointmentsService.updateAppointmentStatus(id, status),
     onSuccess: (_data, variables) => {
-      qc.invalidateQueries(['appointments']);
-      qc.invalidateQueries(['appointment', variables.id]);
-      qc.invalidateQueries(['calendarAppointments']);
+      void qc.invalidateQueries(['appointments']);
+      void qc.invalidateQueries(['appointment', variables.id]);
+      void qc.invalidateQueries(['calendarAppointments']);
     }
   });
 }

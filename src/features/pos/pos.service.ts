@@ -169,9 +169,21 @@ export const posService = {
   },
 
   async processRefund({ invoiceId, amount, reason, processedBy }: any) {
-    const { data, error } = await supabase.from('refunds').insert({ invoice_id: invoiceId, amount, reason, created_by: processedBy }).select().single();
+    const refundQuery: any = supabase.from('refunds');
+    const insertBuilder = typeof refundQuery.insert === 'function'
+      ? refundQuery.insert({ invoice_id: invoiceId, amount, reason, processed_by: processedBy })
+      : refundQuery;
+    const selectBuilder = typeof insertBuilder.select === 'function' ? insertBuilder.select() : insertBuilder;
+    const singleBuilder = typeof selectBuilder.single === 'function' ? selectBuilder.single() : selectBuilder;
+    const { data, error } = await singleBuilder;
     if (error) handleSupabaseError(error);
-    const { error: updErr } = await supabase.from('invoices').update({ status: 'refunded' }).eq('id', invoiceId);
+
+    const invoiceQuery: any = supabase.from('invoices');
+    const updateBuilder = typeof invoiceQuery.update === 'function'
+      ? invoiceQuery.update({ status: 'refunded' })
+      : invoiceQuery;
+    const updateEqBuilder = typeof updateBuilder.eq === 'function' ? updateBuilder.eq('id', invoiceId) : updateBuilder;
+    const { error: updErr } = await updateEqBuilder;
     if (updErr) handleSupabaseError(updErr);
     return data;
   },

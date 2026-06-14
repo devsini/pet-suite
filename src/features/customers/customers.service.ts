@@ -98,7 +98,8 @@ export const customersService = {
     const { data, error } = await supabase
       .from('pets')
       .select('id, name, photo_url, customer_id, species_id, breed_id, gender, birth_date, weight, color, is_sterilized, microchip_number, qr_code, is_active, created_at, updated_at, species(name), breeds(name)')
-      .eq('customer_id', customerId);
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false });
     if (error) handleSupabaseError(error);
     return (data || []).map((record: any) => ({
       id: record.id,

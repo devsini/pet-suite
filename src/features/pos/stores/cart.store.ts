@@ -30,7 +30,7 @@ function computeTotals(cart: Cart, paymentData: PaymentData) {
   const cashPaid = paymentData.splitEnabled
     ? (paymentData.method === 'cash' ? (paymentData.paidAmount || 0) : 0) + (paymentData.methodSecondary === 'cash' ? (paymentData.paidAmountSecondary || 0) : 0)
     : (paymentData.method === 'cash' ? (paymentData.paidAmount || 0) : 0);
-  const changeAmount = Math.max(0, cashPaid - total);
+  const changeAmount = Math.max(0, paid - total);
   return { subtotal, discountTotal, loyaltyDiscount, total, changeAmount };
 }
 

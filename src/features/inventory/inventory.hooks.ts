@@ -36,19 +36,23 @@ export function useInventoryValue() {
 
 export function useCreateInventoryItem() {
   const qc = useQueryClient();
-  return useMutation((payload: any) => inventoryService.createItem(payload), {
-    onSuccess: () => qc.invalidateQueries(['inventoryItems'])
+  return useMutation({
+    mutationFn: (payload: any) => inventoryService.createItem(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries(['inventoryItems']);
+    }
   });
 }
 
 export function useCreateInventoryBatch() {
   const qc = useQueryClient();
-  return useMutation((payload: any) => inventoryService.addBatch(payload), {
+  return useMutation({
+    mutationFn: (payload: any) => inventoryService.addBatch(payload),
     onSuccess: () => {
-      qc.invalidateQueries(['inventoryBatches']);
-      qc.invalidateQueries(['inventoryItems']);
-      qc.invalidateQueries(['lowStockItems']);
-      qc.invalidateQueries(['expiringBatches']);
+      void qc.invalidateQueries(['inventoryBatches']);
+      void qc.invalidateQueries(['inventoryItems']);
+      void qc.invalidateQueries(['lowStockItems']);
+      void qc.invalidateQueries(['expiringBatches']);
     }
   });
 }
