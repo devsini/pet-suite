@@ -37,21 +37,35 @@ export function Sidebar({ activePath, onNavigate, isMobileOpen = false, onClose,
     <aside
       data-sidebar
       className={cn(
-        'fixed inset-y-0 left-0 z-40 overflow-y-auto border-r border-slate-200 bg-slate-50 p-5 shadow-xl transition duration-300 dark:border-slate-800 dark:bg-slate-950 lg:static lg:translate-x-0 lg:shadow-none',
+        'fixed inset-y-0 left-0 z-40 flex flex-col overflow-y-auto border-r border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 dark:border-slate-800 dark:bg-slate-950 lg:static lg:translate-x-0',
         widthClasses,
         isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}
     >
-      <div className="flex items-center justify-between gap-3 pb-5">
-        {!isCollapsed && <div className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Navigation</div>}
-        <Button variant="outline" size="sm" onClick={onToggleCollapse ?? collapseSidebar} title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+      <div className="flex items-center justify-between gap-3 pb-4">
+        {!isCollapsed && (
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+            Navigation
+          </div>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleCollapse ?? collapseSidebar}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={cn(isCollapsed && 'mx-auto')}
+        >
           {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
-      <div className="space-y-8">
+      <div className="flex-1 space-y-6">
         {Object.entries(sections).map(([section, sectionItems]) => (
-          <div key={section} className="space-y-3">
-            {!isCollapsed && <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{section}</h2>}
+          <div key={section} className="space-y-2">
+            {!isCollapsed && (
+              <h2 className="px-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                {section}
+              </h2>
+            )}
             <div className="space-y-1">
               {sectionItems.map((item) => {
                 const Icon = item.icon;
@@ -59,11 +73,13 @@ export function Sidebar({ activePath, onNavigate, isMobileOpen = false, onClose,
                 return (
                   <Button
                     key={item.path}
-                    variant={isActive ? 'default' : 'outline'}
+                    variant={isActive ? 'default' : 'ghost'}
                     className={cn(
-                      'w-full justify-start gap-3 text-left',
-                      isActive ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950' : '',
-                      isCollapsed ? 'justify-center' : ''
+                      'w-full justify-start gap-3 text-left font-normal',
+                      isActive
+                        ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+                      isCollapsed ? 'justify-center px-2' : 'px-3'
                     )}
                     onClick={() => {
                       onNavigate(item.path);
@@ -72,7 +88,7 @@ export function Sidebar({ activePath, onNavigate, isMobileOpen = false, onClose,
                     title={item.label}
                     aria-current={isActive ? 'page' : undefined}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4 shrink-0" />
                     {!isCollapsed && <span>{item.label}</span>}
                   </Button>
                 );

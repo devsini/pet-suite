@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { useOwnerStats, useWeeklyRevenue, useAppointmentBreakdown, useRecentTransactions, useLowStockItems, useDoctorStats, useStaffStats } from '@/features/dashboard/dashboard.hooks';
 import { usePortalCustomer, usePortalCustomerId, usePortalInvoices, usePortalAppointments, usePortalSummary } from '@/features/portal/portal.hooks';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
+import { TrendingUp, Calendar, Activity, Syringe, AlertTriangle } from 'lucide-react';
 
 function SectionSkeleton({ lines = 4 }: { lines?: number }) {
   return (
@@ -19,21 +20,34 @@ function SectionSkeleton({ lines = 4 }: { lines?: number }) {
   );
 }
 
-function StatCard({ title, value, description, isLoading }: { title: string; value: string; description: string; isLoading?: boolean }) {
+function StatCard({ title, value, description, icon: Icon, isLoading }: { title: string; value: string; description: string; icon?: React.ComponentType<{ className?: string }>; isLoading?: boolean }) {
   return (
-    <Card className="space-y-3 p-6">
+    <Card className="relative overflow-hidden p-6 transition-all duration-200 hover:shadow-card-hover animate-slide-up">
+      {Icon && (
+        <div className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+          <Icon className="h-5 w-5" />
+        </div>
+      )}
       <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</div>
       {isLoading
-        ? <Skeleton className="h-9 w-24 mt-2" />
-        : <div className="text-3xl font-semibold text-slate-950 dark:text-slate-100">{value}</div>
+        ? <Skeleton className="mt-2 h-9 w-24" />
+        : <div className="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{value}</div>
       }
-      <p className="text-sm text-slate-600 dark:text-slate-400">{description}</p>
+      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{description}</p>
     </Card>
   );
 }
 
 function StatusPill({ status }: { status: string }) {
-  const variant = status === 'paid' || status === 'completed' ? 'default' : status === 'scheduled' || status === 'pending' ? 'secondary' : 'outline';
+  const variantMap: Record<string, 'emerald' | 'amber' | 'rose' | 'slate' | 'blue'> = {
+    paid: 'emerald',
+    completed: 'emerald',
+    scheduled: 'blue',
+    pending: 'amber',
+    cancelled: 'rose',
+    'no-show': 'rose'
+  };
+  const variant = variantMap[status] ?? 'slate';
   return <Badge variant={variant}>{status}</Badge>;
 }
 
@@ -52,12 +66,12 @@ function OwnerDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Revenue today" value={formatCurrency(stats?.revenueToday ?? 0)} description="Paid invoice revenue captured so far today." isLoading={statsQuery.isLoading} />
-        <StatCard title="Appointments today" value={String(stats?.appointmentsToday ?? 0)} description="Scheduled patient visits for today." isLoading={statsQuery.isLoading} />
-        <StatCard title="Active inpatients" value={String(stats?.activeInpatients ?? 0)} description="Pets currently admitted in inpatient care." isLoading={statsQuery.isLoading} />
-        <StatCard title="Pending vaccinations" value={String(stats?.pendingVaccinations ?? 0)} description="Vaccination reminders due soon." isLoading={statsQuery.isLoading} />
-        <StatCard title="Low stock alerts" value={String(stats?.lowStockCount ?? 0)} description="Items at or below minimum stock levels." isLoading={statsQuery.isLoading} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard title="Revenue today" value={formatCurrency(stats?.revenueToday ?? 0)} description="Paid invoice revenue captured so far today." icon={TrendingUp} isLoading={statsQuery.isLoading} />
+        <StatCard title="Appointments today" value={String(stats?.appointmentsToday ?? 0)} description="Scheduled patient visits for today." icon={Calendar} isLoading={statsQuery.isLoading} />
+        <StatCard title="Active inpatients" value={String(stats?.activeInpatients ?? 0)} description="Pets currently admitted in inpatient care." icon={Activity} isLoading={statsQuery.isLoading} />
+        <StatCard title="Pending vaccinations" value={String(stats?.pendingVaccinations ?? 0)} description="Vaccination reminders due soon." icon={Syringe} isLoading={statsQuery.isLoading} />
+        <StatCard title="Low stock alerts" value={String(stats?.lowStockCount ?? 0)} description="Items at or below minimum stock levels." icon={AlertTriangle} isLoading={statsQuery.isLoading} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
@@ -65,9 +79,9 @@ function OwnerDashboard() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Weekly revenue</p>
-              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Last 7 days</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Last 7 days</h2>
             </div>
-            <Badge variant="secondary">Revenue</Badge>
+            <Badge variant="blue">Revenue</Badge>
           </div>
           <div className="mt-6 h-72">
             {revenueQuery.isLoading ? (
@@ -78,7 +92,16 @@ function OwnerDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="date" tick={{ fill: '#64748b' }} />
                   <YAxis tickFormatter={(value) => formatCurrency(Number(value))} tick={{ fill: '#64748b' }} />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0f172a',
+                      border: 'none',
+                      borderRadius: '0.75rem',
+                      color: '#f1f5f9',
+                      fontSize: '0.875rem'
+                    }}
+                    formatter={(value) => formatCurrency(Number(value))}
+                  />
                   <Line type="monotone" dataKey="amount" stroke="#2563eb" strokeWidth={3} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -90,19 +113,19 @@ function OwnerDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Appointment status</p>
-              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">This month</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">This month</h2>
             </div>
-            <Button variant="outline" size="sm" onClick={() => breakdownQuery.refetch()}>
+            <Button variant="ghost" size="sm" onClick={() => breakdownQuery.refetch()}>
               Refresh
             </Button>
           </div>
           {breakdownQuery.isLoading ? (
             <SectionSkeleton />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {breakdown.map((item) => (
-                <div key={item.status} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                  <span>{item.status}</span>
+                <div key={item.status} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-slate-700 transition-colors hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                  <span className="font-medium">{item.status}</span>
                   <span className="font-semibold">{item.count}</span>
                 </div>
               ))}
@@ -117,9 +140,9 @@ function OwnerDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Recent invoices</p>
-              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Latest transactions</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Latest transactions</h2>
             </div>
-            <Button variant="outline" size="sm" onClick={() => transactionQuery.refetch()}>
+            <Button variant="ghost" size="sm" onClick={() => transactionQuery.refetch()}>
               Refresh
             </Button>
           </div>
@@ -144,9 +167,9 @@ function OwnerDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Low stock</p>
-              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Inventory alerts</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Inventory alerts</h2>
             </div>
-            <Button variant="outline" size="sm" onClick={() => lowStockQuery.refetch()}>
+            <Button variant="ghost" size="sm" onClick={() => lowStockQuery.refetch()}>
               Refresh
             </Button>
           </div>
@@ -158,13 +181,13 @@ function OwnerDashboard() {
             <div className="mt-6 space-y-3">
               {lowStockItems.length ? (
                 lowStockItems.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                  <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.name}</p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">Minimum {item.minStock} / available {item.currentStock}</p>
                       </div>
-                      <Badge variant="outline">{item.currentStock <= item.minStock ? 'Critical' : 'Low'}</Badge>
+                      <Badge variant={item.currentStock <= item.minStock ? 'rose' : 'amber'}>{item.currentStock <= item.minStock ? 'Critical' : 'Low'}</Badge>
                     </div>
                   </div>
                 ))
@@ -188,13 +211,13 @@ function DoctorDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Today appointments" value={String(appointmentRows.length)} description="Sessions scheduled for you today." isLoading={doctorQuery.isLoading} />
-        <StatCard title="Active inpatients" value={String(doctorStats?.activeInpatients ?? 0)} description="Patients currently in inpatient care." isLoading={doctorQuery.isLoading} />
-        <StatCard title="Recent records" value={String(recordRows.length)} description="Latest case notes created." isLoading={doctorQuery.isLoading} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Today appointments" value={String(appointmentRows.length)} description="Sessions scheduled for you today." icon={Calendar} isLoading={doctorQuery.isLoading} />
+        <StatCard title="Active inpatients" value={String(doctorStats?.activeInpatients ?? 0)} description="Patients currently in inpatient care." icon={Activity} isLoading={doctorQuery.isLoading} />
+        <StatCard title="Recent records" value={String(recordRows.length)} description="Latest case notes created." icon={TrendingUp} isLoading={doctorQuery.isLoading} />
         <Card className="space-y-3 p-6">
           <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Next actions</div>
-          <p className="text-slate-700 dark:text-slate-200">Review upcoming appointments, update treatment notes, and close today&apos;s cases.</p>
+          <p className="text-slate-600 dark:text-slate-300">Review upcoming appointments, update treatment notes, and close today's cases.</p>
         </Card>
       </div>
 
@@ -202,10 +225,10 @@ function DoctorDashboard() {
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Today&apos;s appointments</p>
-              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Appointment schedule</h2>
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Today's appointments</p>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Appointment schedule</h2>
             </div>
-            <Button variant="outline" size="sm" onClick={() => doctorQuery.refetch()}>
+            <Button variant="ghost" size="sm" onClick={() => doctorQuery.refetch()}>
               Refresh
             </Button>
           </div>
@@ -229,14 +252,14 @@ function DoctorDashboard() {
         <Card className="p-6">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Recent medical records</p>
-            <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Recent notes</h2>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Recent notes</h2>
           </div>
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 space-y-3">
             {doctorQuery.isLoading ? (
               <SectionSkeleton />
             ) : recordRows.length ? (
               recordRows.map((record) => (
-                <Card key={record.id} className="border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+                <div key={record.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{record.recordType}</p>
@@ -244,7 +267,7 @@ function DoctorDashboard() {
                     </div>
                     <span className="text-sm text-slate-500 dark:text-slate-400">{formatDate(record.createdAt, { day: 'numeric', month: 'short' })}</span>
                   </div>
-                </Card>
+                </div>
               ))
             ) : (
               <p className="text-sm text-slate-500 dark:text-slate-400">No recent medical records available.</p>
@@ -265,13 +288,13 @@ function StaffDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Today appointments" value={String(appointments.length)} description="Tasks scheduled for your team today." isLoading={staffQuery.isLoading} />
-        <StatCard title="Grooming today" value={String(grooming.length)} description="Grooming services set for today." isLoading={staffQuery.isLoading} />
-        <StatCard title="Low stock alerts" value={String(lowStock.length)} description="Needed inventory restocks." isLoading={staffQuery.isLoading} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Today appointments" value={String(appointments.length)} description="Tasks scheduled for your team today." icon={Calendar} isLoading={staffQuery.isLoading} />
+        <StatCard title="Grooming today" value={String(grooming.length)} description="Grooming services set for today." icon={Activity} isLoading={staffQuery.isLoading} />
+        <StatCard title="Low stock alerts" value={String(lowStock.length)} description="Needed inventory restocks." icon={AlertTriangle} isLoading={staffQuery.isLoading} />
         <Card className="space-y-3 p-6">
           <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Operational overview</div>
-          <p className="text-slate-700 dark:text-slate-200">Keep track of service delivery, stock, and customer appointments.</p>
+          <p className="text-slate-600 dark:text-slate-300">Keep track of service delivery, stock, and customer appointments.</p>
         </Card>
       </div>
 
@@ -280,9 +303,9 @@ function StaffDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Today's schedule</p>
-              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Appointment list</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Appointment list</h2>
             </div>
-            <Button variant="outline" size="sm" onClick={() => staffQuery.refetch()}>
+            <Button variant="ghost" size="sm" onClick={() => staffQuery.refetch()}>
               Refresh
             </Button>
           </div>
@@ -306,20 +329,20 @@ function StaffDashboard() {
         <Card className="p-6">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Inventory alerts</p>
-            <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Low stock items</h2>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Low stock items</h2>
           </div>
           <div className="mt-6 space-y-3">
             {staffQuery.isLoading ? (
               <SectionSkeleton />
             ) : lowStock.length ? (
               lowStock.map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.name}</p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">{item.currentStock} remaining · min {item.minStock}</p>
                     </div>
-                    <Badge variant="outline">Restock</Badge>
+                    <Badge variant="amber">Restock</Badge>
                   </div>
                 </div>
               ))
@@ -333,14 +356,14 @@ function StaffDashboard() {
       <Card className="p-6">
         <div>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Grooming schedule</p>
-          <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Today&apos;s services</h2>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Today's services</h2>
         </div>
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-3">
           {staffQuery.isLoading ? (
             <SectionSkeleton />
           ) : grooming.length ? (
             grooming.map((entry) => (
-              <Card key={entry.id} className="border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+              <div key={entry.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.service ?? 'Service'}</p>
@@ -348,7 +371,7 @@ function StaffDashboard() {
                   </div>
                   <span className="text-sm text-slate-500 dark:text-slate-400">{formatDate(entry.scheduledAt, { day: 'numeric', month: 'short' })}</span>
                 </div>
-              </Card>
+              </div>
             ))
           ) : (
             <p className="text-sm text-slate-500 dark:text-slate-400">No grooming appointments scheduled for today.</p>
@@ -373,13 +396,13 @@ function CustomerDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Your pets" value={String(summary?.petCount ?? 0)} description="Pets currently registered in your account." isLoading={summaryQuery.isLoading} />
-        <StatCard title="Upcoming visits" value={String(summary?.appointmentCount ?? 0)} description="Future appointments scheduled for you." isLoading={summaryQuery.isLoading} />
-        <StatCard title="Invoices" value={String(summary?.invoiceCount ?? 0)} description="Recent billing records on file." isLoading={summaryQuery.isLoading} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Your pets" value={String(summary?.petCount ?? 0)} description="Pets currently registered in your account." icon={Activity} isLoading={summaryQuery.isLoading} />
+        <StatCard title="Upcoming visits" value={String(summary?.appointmentCount ?? 0)} description="Future appointments scheduled for you." icon={Calendar} isLoading={summaryQuery.isLoading} />
+        <StatCard title="Invoices" value={String(summary?.invoiceCount ?? 0)} description="Recent billing records on file." icon={TrendingUp} isLoading={summaryQuery.isLoading} />
         <Card className="space-y-3 p-6">
           <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Account</div>
-          <p className="text-slate-700 dark:text-slate-200">Manage bookings, payment history, and pet records in one place.</p>
+          <p className="text-slate-600 dark:text-slate-300">Manage bookings, payment history, and pet records in one place.</p>
         </Card>
       </div>
 
@@ -387,7 +410,7 @@ function CustomerDashboard() {
         <Card className="p-6">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Your profile</p>
-            <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Account details</h2>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Account details</h2>
           </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div>
@@ -413,7 +436,7 @@ function CustomerDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Upcoming appointments</p>
-              <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Your next visits</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Your next visits</h2>
             </div>
           </div>
           <div className="mt-6">
@@ -437,7 +460,7 @@ function CustomerDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Recent invoices</p>
-            <h2 className="text-xl font-semibold text-slate-950 dark:text-slate-100">Billing history</h2>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Billing history</h2>
           </div>
         </div>
         <div className="mt-6">
@@ -478,10 +501,9 @@ export function DashboardPage() {
   }, [role]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <PageHeader title="Dashboard" description="Quick access to your PetCare Suite workspace and role-specific insights." />
       {dashboardContent}
     </div>
   );
 }
-

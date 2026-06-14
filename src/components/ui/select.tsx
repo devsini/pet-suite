@@ -11,7 +11,7 @@ export const SelectTrigger = React.forwardRef<React.ElementRef<typeof SelectPrim
     <SelectPrimitive.Trigger
       ref={ref}
       className={cn(
-        'flex h-11 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-slate-800',
+        'flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100',
         className
       )}
       {...props}
@@ -26,7 +26,7 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
 export const SelectContent = React.forwardRef<React.ElementRef<typeof SelectPrimitive.Content>, React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>>(
   ({ className, children, ...props }, ref) => (
     <SelectPrimitive.Portal>
-      <SelectPrimitive.Content ref={ref} className={cn('overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950', className)} {...props}>
+      <SelectPrimitive.Content ref={ref} className={cn('overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-modal animate-scale-in dark:border-slate-800 dark:bg-slate-950', className)} {...props}>
         <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>

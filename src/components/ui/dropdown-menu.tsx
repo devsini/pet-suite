@@ -16,7 +16,7 @@ export const DropdownMenuContent = React.forwardRef<React.ElementRef<typeof Drop
       <DropdownMenuPrimitive.Content
         ref={ref}
         sideOffset={sideOffset}
-        className={cn('z-50 min-w-[12rem] overflow-hidden rounded-3xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-900/10 dark:border-slate-800 dark:bg-slate-950', className)}
+        className={cn('z-50 min-w-[12rem] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-modal animate-scale-in dark:border-slate-800 dark:bg-slate-950', className)}
         {...props}
       />
     </DropdownMenuPrimitive.Portal>

@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 export const Tabs = TabsPrimitive.Root;
 export const TabsList = React.forwardRef<React.ElementRef<typeof TabsPrimitive.List>, React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>>(
   ({ className, ...props }, ref) => (
-    <TabsPrimitive.List ref={ref} className={cn('inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900', className)} {...props} />
+    <TabsPrimitive.List ref={ref} className={cn('inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50/80 p-1 dark:border-slate-800 dark:bg-slate-900/80', className)} {...props} />
   )
 );
 TabsList.displayName = TabsPrimitive.List.displayName;
@@ -15,7 +15,7 @@ export const TabsTrigger = React.forwardRef<React.ElementRef<typeof TabsPrimitiv
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition-colors data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm hover:bg-slate-100 dark:text-slate-300 dark:data-[state=active]:bg-slate-950 dark:data-[state=active]:text-slate-100 dark:hover:bg-slate-900',
+        'inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-slate-500 transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm hover:text-slate-900 dark:text-slate-400 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-blue-400 dark:hover:text-slate-100',
         className
       )}
       {...props}
