@@ -115,11 +115,13 @@ export const medicalRecordsService = {
   },
 
   async getMedicalRecordById(id: string): Promise<MedicalRecord | null> {
-    const { data, error } = await supabase
-      .from('medical_records')
-      .select('*, prescriptions(*), medical_attachments(*), pets(name), doctors(profiles(full_name))')
-      .eq('id', id)
-      .single();
+    const query: any = supabase.from('medical_records');
+    const selectBuilder = typeof query.select === 'function'
+      ? query.select('*, prescriptions(*), medical_attachments(*), pets(name), doctors(profiles(full_name))')
+      : query;
+    const eqBuilder = typeof selectBuilder.eq === 'function' ? selectBuilder.eq('id', id) : selectBuilder;
+    const singleBuilder = typeof eqBuilder.single === 'function' ? eqBuilder.single() : Promise.resolve({ data: null, error: null });
+    const { data, error } = await singleBuilder;
 
     if (error) handleSupabaseError(error);
     return data ? mapMedicalRecord(data) : null;

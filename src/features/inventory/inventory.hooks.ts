@@ -40,6 +40,9 @@ export function useCreateInventoryItem() {
     mutationFn: (payload: any) => inventoryService.createItem(payload),
     onSuccess: () => {
       void qc.invalidateQueries(['inventoryItems']);
+    },
+    onError: (error) => {
+      console.error(error);
     }
   });
 }

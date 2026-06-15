@@ -24,9 +24,16 @@ export function useAppointment(id?: string) {
 export function useCreateAppointment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: any) => appointmentsService.createAppointment(payload),
+    mutationFn: (payload: any) => {
+      console.log('create appointment mutationFn start');
+      return appointmentsService.createAppointment(payload);
+    },
     onSuccess: () => {
+      console.log('create appointment onSuccess');
       void qc.invalidateQueries(['appointments']);
+    },
+    onError: (error) => {
+      console.log('create appointment onError', error);
     }
   });
 }
