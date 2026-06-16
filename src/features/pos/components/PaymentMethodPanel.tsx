@@ -28,7 +28,7 @@ const methods: Array<{ value: PaymentMethod; label: string; icon: ComponentType<
 
 function methodButtonClass(selected: boolean) {
   return selected
-    ? 'border border-transparent bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950'
+    ? 'border-2 border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-900/30 dark:text-blue-400'
     : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:bg-slate-900';
 }
 
@@ -50,26 +50,26 @@ export function PaymentMethodPanel({
   const selectedSecondaryOptions = methods.filter((option) => option.value !== method);
 
   return (
-    <Card className="space-y-4 p-4">
+    <Card className="space-y-4 p-4 glass-card">
       <div>
-        <h3 className="text-base font-semibold">Payment method</h3>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Payment method</h3>
         <p className="text-sm text-slate-500">Choose the primary payment method for this sale.</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 grid-cols-2">
         {methods.map((option) => {
           const Icon = option.icon;
+          const isSelected = method === option.value;
           return (
-            <Button
+            <button
               key={option.value}
               type="button"
-              variant={method === option.value ? 'default' : 'outline'}
-              className={methodButtonClass(method === option.value)}
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 transition-all duration-150 ${methodButtonClass(isSelected)}`}
               onClick={() => onMethodChange(option.value)}
             >
-              <Icon className="mr-2 h-4 w-4" />
-              {option.label}
-            </Button>
+              <Icon className={`h-6 w-6 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`} />
+              <span className="text-sm font-medium">{option.label}</span>
+            </button>
           );
         })}
       </div>
@@ -99,22 +99,22 @@ export function PaymentMethodPanel({
       </div>
 
       {splitEnabled ? (
-        <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
           <div className="text-sm font-medium text-slate-700 dark:text-slate-200">Secondary payment</div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 grid-cols-2">
             {selectedSecondaryOptions.map((option) => {
               const Icon = option.icon;
+              const isSelected = methodSecondary === option.value;
               return (
-                <Button
+                <button
                   key={option.value}
                   type="button"
-                  variant={methodSecondary === option.value ? 'default' : 'outline'}
-                  className={methodButtonClass(methodSecondary === option.value)}
+                  className={`flex flex-col items-center justify-center gap-2 rounded-xl p-3 transition-all duration-150 ${methodButtonClass(isSelected)}`}
                   onClick={() => onSecondaryMethodChange(option.value)}
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  {option.label}
-                </Button>
+                  <Icon className={`h-5 w-5 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`} />
+                  <span className="text-xs font-medium">{option.label}</span>
+                </button>
               );
             })}
           </div>

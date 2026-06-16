@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ShoppingCart, Receipt } from 'lucide-react';
+import { ShoppingCart, Receipt, Search } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { Button, Card, Input, Tabs, TabsList, TabsTrigger } from '@/components/ui';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -173,71 +173,73 @@ export default function PosPage() {
             onRedeemChange={setLoyaltyRedeem}
           />
 
-          <Card className="space-y-4 p-4">
+          <Card className="space-y-4 p-4 glass-card">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-base font-semibold">Search inventory</h3>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Search inventory</h3>
                 <p className="text-sm text-slate-500">Add products or services to the cart.</p>
               </div>
             </div>
 
             <Tabs value={tab} onValueChange={(v) => setTab(v as 'products' | 'services')}>
-              <TabsList className="w-full">
-                <TabsTrigger value="products" className="flex-1">Products</TabsTrigger>
-                <TabsTrigger value="services" className="flex-1">Services</TabsTrigger>
+              <TabsList className="w-full bg-slate-100 rounded-xl p-1">
+                <TabsTrigger value="products" className="flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">Products</TabsTrigger>
+                <TabsTrigger value="services" className="flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">Services</TabsTrigger>
               </TabsList>
             </Tabs>
 
-            <div className="mt-3">
+            <div className="relative mt-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search by name or SKU"
+                className="pl-9"
                 aria-label="Search products and services"
               />
             </div>
 
-            <div className="space-y-2 pt-4">
+            <div className="space-y-2 pt-4 max-h-80 overflow-y-auto">
               {results.length ? (
                 results.map((result) => (
-                  <div key={result.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-800">
+                  <div key={result.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 hover:bg-blue-50/50 hover:border-blue-200 transition-all duration-150 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-800">
                     <div>
                       <div className="font-medium text-slate-900 dark:text-slate-100">{result.name}</div>
                       <div className="text-sm text-slate-500">{formatCurrency(result.price)}</div>
                     </div>
-                    <Button onClick={() => addResultToCart(result)}>
-                      <ShoppingCart className="mr-2 h-4 w-4" />
+                    <Button onClick={() => addResultToCart(result)} size="sm">
+                      <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
                       Add
                     </Button>
                   </div>
                 ))
               ) : (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
                   {query ? 'No items found for this search.' : 'Search products or services to add to the cart.'}
                 </div>
               )}
             </div>
 
             <div className="mt-4 flex justify-end">
-              <Button variant="outline" onClick={() => setInpatientModalOpen(true)}>Load inpatient bill</Button>
+              <Button variant="ghost" size="sm" onClick={() => setInpatientModalOpen(true)}>Load inpatient bill</Button>
             </div>
           </Card>
         </div>
 
         <div className="space-y-4">
-          <Card className="p-4">
+          <Card className="p-4 glass-card">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold">Cart items</h3>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Cart items</h3>
                 <p className="text-sm text-slate-500">Review items before checkout.</p>
               </div>
-              <Button variant="outline" onClick={clearCart} disabled={!cart.items.length}>Clear cart</Button>
+              <Button variant="ghost" size="sm" onClick={clearCart} disabled={!cart.items.length}>Clear cart</Button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
               {cart.items.length > 0 ? (
                 cart.items.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-800">
+                  <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-blue-50/30 hover:border-blue-200 transition-all duration-150 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-800">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="font-medium text-slate-900 dark:text-slate-100">{item.name}</div>
@@ -245,7 +247,7 @@ export default function PosPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <Button size="sm" variant="outline" onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}>-</Button>
-                        <div className="w-10 text-center text-sm">{item.quantity}</div>
+                        <div className="w-10 text-center text-sm font-medium">{item.quantity}</div>
                         <Button size="sm" variant="outline" onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</Button>
                         <Input
                           className="w-24"
@@ -261,18 +263,18 @@ export default function PosPage() {
                   </div>
                 ))
               ) : (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
                   Your cart is currently empty.
                 </div>
               )}
             </div>
 
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex justify-between py-1"><span>Subtotal</span><span>{formatCurrency(cart.subtotal)}</span></div>
-              <div className="flex justify-between py-1"><span>Discount</span><span>{formatCurrency(cart.discountTotal)}</span></div>
-              <div className="flex justify-between py-1"><span>Loyalty</span><span>{formatCurrency(cart.loyaltyDiscount)}</span></div>
-              <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
-                <div className="flex justify-between text-base font-semibold"><span>Total</span><span>{formatCurrency(cart.total)}</span></div>
+            <div className="mt-6 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 text-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-950">
+              <div className="flex justify-between py-1"><span className="text-slate-500">Subtotal</span><span className="font-medium">{formatCurrency(cart.subtotal)}</span></div>
+              <div className="flex justify-between py-1"><span className="text-slate-500">Discount</span><span className="font-medium text-rose-600">{formatCurrency(cart.discountTotal)}</span></div>
+              <div className="flex justify-between py-1"><span className="text-slate-500">Loyalty</span><span className="font-medium text-amber-600">{formatCurrency(cart.loyaltyDiscount)}</span></div>
+              <div className="border-t border-slate-200 pt-3 mt-1 dark:border-slate-800">
+                <div className="flex justify-between text-base font-bold"><span>Total</span><span className="text-blue-600 dark:text-blue-400">{formatCurrency(cart.total)}</span></div>
               </div>
             </div>
           </Card>
@@ -295,24 +297,24 @@ export default function PosPage() {
             onReferenceChange={(reference) => setReference(reference)}
           />
 
-          <Card className="space-y-4 p-4">
+          <Card className="space-y-4 p-4 glass-card">
             <div>
-              <h3 className="text-base font-semibold">Checkout</h3>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Checkout</h3>
               <p className="text-sm text-slate-500">Confirm the invoice and complete payment.</p>
             </div>
 
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between"><span>Customer</span><span>{cart.customerName ?? 'Walk-in'}</span></div>
-              {cart.customerPhone ? <div className="flex justify-between"><span>Phone</span><span>{cart.customerPhone}</span></div> : null}
-              <div className="flex justify-between"><span>Payment method</span><span>{paymentData.method}{paymentData.splitEnabled && paymentData.methodSecondary ? ` + ${paymentData.methodSecondary}` : ''}</span></div>
-              <div className="flex justify-between"><span>Paid</span><span>{formatCurrency(paymentData.paidAmount + (paymentData.splitEnabled ? (paymentData.paidAmountSecondary || 0) : 0))}</span></div>
-              <div className="flex justify-between"><span>Change</span><span>{formatCurrency(paymentData.changeAmount)}</span></div>
+            <div className="space-y-3 text-sm bg-slate-50 rounded-xl p-4 dark:bg-slate-900">
+              <div className="flex justify-between"><span className="text-slate-500">Customer</span><span className="font-medium">{cart.customerName ?? 'Walk-in'}</span></div>
+              {cart.customerPhone ? <div className="flex justify-between"><span className="text-slate-500">Phone</span><span className="font-medium">{cart.customerPhone}</span></div> : null}
+              <div className="flex justify-between"><span className="text-slate-500">Payment method</span><span className="font-medium">{paymentData.method}{paymentData.splitEnabled && paymentData.methodSecondary ? ` + ${paymentData.methodSecondary}` : ''}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Paid</span><span className="font-medium text-emerald-600">{formatCurrency(paymentData.paidAmount + (paymentData.splitEnabled ? (paymentData.paidAmountSecondary || 0) : 0))}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Change</span><span className="font-medium text-amber-600">{formatCurrency(paymentData.changeAmount)}</span></div>
             </div>
 
             <Button
               onClick={checkout}
               disabled={!cart.items.length || checkoutLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 font-semibold py-3 rounded-xl text-white shadow-sm transition-all duration-150 hover:from-blue-700 hover:to-blue-800 active:scale-95"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 font-semibold py-3.5 rounded-xl text-white shadow-lg shadow-blue-500/25 transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-blue-500/40 active:scale-[0.98]"
             >
               {checkoutLoading ? 'Processing…' : 'Complete checkout'}
             </Button>

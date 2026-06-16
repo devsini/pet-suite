@@ -20,20 +20,23 @@ function SectionSkeleton({ lines = 4 }: { lines?: number }) {
   );
 }
 
-function StatCard({ title, value, description, icon: Icon, gradient, isLoading }: { title: string; value: string; description: string; icon?: React.ComponentType<{ className?: string }>; gradient?: string; isLoading?: boolean }) {
+function StatCard({ title, value, description, icon: Icon, gradient, glowClass, isLoading }: { title: string; value: string; description: string; icon?: React.ComponentType<{ className?: string }>; gradient?: string; glowClass?: string; isLoading?: boolean }) {
   return (
-    <Card className="relative overflow-hidden p-6 transition-all duration-200 hover:shadow-card-hover animate-slide-up">
+    <Card className={cn('relative overflow-hidden p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg animate-slide-up', glowClass)}>
+      <div className="absolute top-0 right-0 w-24 h-24 opacity-10 rounded-full -translate-y-1/2 translate-x-1/2" style={{ background: gradient?.replace('bg-gradient-to-br ', '').replace('from-', '').replace('to-', '').split(' ')[0] || '#3b82f6' }} />
       {Icon && (
-        <div className={cn('mb-4 flex h-10 w-10 items-center justify-center rounded-xl', gradient ?? 'bg-blue-500')}>
+        <div className={cn('relative mb-4 flex h-11 w-11 items-center justify-center rounded-xl shadow-lg', gradient ?? 'bg-gradient-to-br from-blue-500 to-blue-600')}>
           <Icon className="h-5 w-5 text-white" />
         </div>
       )}
-      <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</div>
-      {isLoading
-        ? <Skeleton className="mt-2 h-9 w-24" />
-        : <div className="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{value}</div>
-      }
-      <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{description}</p>
+      <div className="relative">
+        <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</div>
+        {isLoading
+          ? <Skeleton className="mt-2 h-9 w-24" />
+          : <div className="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{value}</div>
+        }
+        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{description}</p>
+      </div>
     </Card>
   );
 }
@@ -67,15 +70,15 @@ function OwnerDashboard() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard title="Revenue today" value={formatCurrency(stats?.revenueToday ?? 0)} description="Paid invoice revenue captured so far today." icon={TrendingUp} gradient="bg-gradient-to-br from-blue-500 to-blue-600" isLoading={statsQuery.isLoading} />
-        <StatCard title="Appointments today" value={String(stats?.appointmentsToday ?? 0)} description="Scheduled patient visits for today." icon={CalendarDays} gradient="bg-gradient-to-br from-violet-500 to-violet-600" isLoading={statsQuery.isLoading} />
-        <StatCard title="Active inpatients" value={String(stats?.activeInpatients ?? 0)} description="Pets currently admitted in inpatient care." icon={HeartPulse} gradient="bg-gradient-to-br from-amber-500 to-amber-600" isLoading={statsQuery.isLoading} />
-        <StatCard title="Pending vaccinations" value={String(stats?.pendingVaccinations ?? 0)} description="Vaccination reminders due soon." icon={ShieldCheck} gradient="bg-gradient-to-br from-emerald-500 to-emerald-600" isLoading={statsQuery.isLoading} />
-        <StatCard title="Low stock alerts" value={String(stats?.lowStockCount ?? 0)} description="Items at or below minimum stock levels." icon={AlertTriangle} gradient="bg-gradient-to-br from-rose-500 to-rose-600" isLoading={statsQuery.isLoading} />
+        <StatCard title="Revenue today" value={formatCurrency(stats?.revenueToday ?? 0)} description="Paid invoice revenue captured so far today." icon={TrendingUp} gradient="bg-gradient-to-br from-blue-500 to-blue-600" glowClass="glow" isLoading={statsQuery.isLoading} />
+        <StatCard title="Appointments today" value={String(stats?.appointmentsToday ?? 0)} description="Scheduled patient visits for today." icon={CalendarDays} gradient="bg-gradient-to-br from-violet-500 to-violet-600" glowClass="glow-violet" isLoading={statsQuery.isLoading} />
+        <StatCard title="Active inpatients" value={String(stats?.activeInpatients ?? 0)} description="Pets currently admitted in inpatient care." icon={HeartPulse} gradient="bg-gradient-to-br from-amber-500 to-amber-600" glowClass="glow-amber" isLoading={statsQuery.isLoading} />
+        <StatCard title="Pending vaccinations" value={String(stats?.pendingVaccinations ?? 0)} description="Vaccination reminders due soon." icon={ShieldCheck} gradient="bg-gradient-to-br from-emerald-500 to-emerald-600" glowClass="glow-emerald" isLoading={statsQuery.isLoading} />
+        <StatCard title="Low stock alerts" value={String(stats?.lowStockCount ?? 0)} description="Items at or below minimum stock levels." icon={AlertTriangle} gradient="bg-gradient-to-br from-rose-500 to-rose-600" glowClass="glow-rose" isLoading={statsQuery.isLoading} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <Card className="p-6">
+        <Card className="p-6 glass-card">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Weekly revenue</p>
@@ -89,27 +92,34 @@ function OwnerDashboard() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={weeklyRevenue} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="date" tick={{ fill: '#64748b' }} />
-                  <YAxis tickFormatter={(value) => formatCurrency(Number(value))} tick={{ fill: '#64748b' }} />
+                  <defs>
+                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
+                  <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={(value) => formatCurrency(Number(value))} tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#0f172a',
-                      border: 'none',
+                      border: '1px solid #1e293b',
                       borderRadius: '0.75rem',
                       color: '#f1f5f9',
-                      fontSize: '0.875rem'
+                      fontSize: '0.875rem',
+                      boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)'
                     }}
                     formatter={(value) => formatCurrency(Number(value))}
                   />
-                  <Line type="monotone" dataKey="amount" stroke="#2563eb" strokeWidth={3} dot={false} />
+                  <Line type="monotone" dataKey="amount" stroke="url(#revenueGradient)" strokeWidth={3} dot={false} fill="url(#revenueGradient)" />
                 </LineChart>
               </ResponsiveContainer>
             )}
           </div>
         </Card>
 
-        <Card className="space-y-4 p-6">
+        <Card className="space-y-4 p-6 glass-card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Appointment status</p>

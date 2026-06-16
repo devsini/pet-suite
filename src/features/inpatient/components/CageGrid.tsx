@@ -26,7 +26,7 @@ export function CageGrid({ cages, inpatientRecords, onCageClick }: CageGridProps
         const card = (
           <div
             className={cn(
-              'rounded-3xl border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover',
+              'rounded-2xl border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
               statusClass,
               isClickable ? 'cursor-pointer' : 'opacity-80'
             )}
@@ -34,7 +34,7 @@ export function CageGrid({ cages, inpatientRecords, onCageClick }: CageGridProps
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900">{cage.name}</p>
-                <Badge variant="secondary" className="mt-2 uppercase tracking-[0.18em]">
+                <Badge variant={cage.status === 'available' ? 'emerald' : cage.status === 'occupied' ? 'amber' : 'slate'} className="mt-2">
                   {cage.status.replace('-', ' ')}
                 </Badge>
               </div>
