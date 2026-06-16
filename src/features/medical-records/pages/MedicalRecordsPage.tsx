@@ -60,7 +60,7 @@ export default function MedicalRecordsPage() {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 animate-fade-in">
       <PageHeader
         title="Medical Records"
         description="Review SOAP notes, prescriptions, and attachments for each pet visit."

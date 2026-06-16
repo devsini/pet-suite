@@ -16,7 +16,7 @@ export default function CustomersPage() {
   const total = data?.total ?? 0;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 animate-fade-in">
       <PageHeader
         title="Customers"
         description="Manage customer records, loyalty, and communication history."
@@ -55,11 +55,11 @@ export default function CustomersPage() {
         </select>
       </div>
 
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {isLoading ? (
           <div className="p-6 space-y-3"><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-full" /><Skeleton className="h-6 w-full" /></div>
         ) : items.length === 0 ? (
-          <div className="p-6 text-center">No customers found.</div>
+          <div className="p-6 text-center text-slate-500">No customers found.</div>
         ) : (
           <table className="w-full min-w-full table-auto border-collapse text-sm">
             <thead className="bg-slate-50">

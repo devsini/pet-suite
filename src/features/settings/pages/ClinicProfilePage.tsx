@@ -41,9 +41,9 @@ export default function ClinicProfilePage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <PageHeader title="Clinic Profile" description="Manage clinic information and branding." />
-      <Card className="space-y-6 p-6">
+      <Card className="space-y-6 p-6 rounded-2xl">
         <div className="grid gap-6 lg:grid-cols-[1fr,320px]">
           <div className="space-y-5">
             <div>
